@@ -13,13 +13,20 @@
 
 ## Table of Contents
 
+- [Table of Contents](#table-of-contents)
+- [Introduction](#introduction)
 - [Quick Start](#quick-start)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
 - [Project Overview](#project-overview)
-- [Project Structure](#project-structure)
-- [Data Pipeline](#data-pipeline)
-- [Streamlit Dashboard](#streamlit-dashboard)
-- [Developer Setup](#developer-setup)
-- [Handover Notes](#handover-notes)
+- [Additional Documentation](#additional-documentation)
+- [Authors](#authors)
+
+---
+
+## Introduction
+
+This repository contains the codebase for the XHEC-Eleven Data Science Challenge focused on forecasting plane taxi times using machine learning techniques. The project includes data ingestion, processing pipelines, model training, and a Streamlit dashboard for visualization.
 
 ---
 
@@ -41,8 +48,6 @@ cd eleven-data-challenge
 
 # 2. Install dependencies
 uv sync
-
-# 3. (Optional) Set up data versioning - see "Handover Notes" if credentials are available
 ```
 
 ## Project Overview

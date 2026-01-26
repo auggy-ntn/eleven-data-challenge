@@ -57,7 +57,48 @@ OVH_SECRET_ACCESS_KEY=<provided_by_owner>
 
 > **Note:** The owner will share these credentials securely. Do NOT create your own OVH account.
 
-### 5. Configure DVC Remote
+### 5. Configure MLflow (Experiment Tracking)
+
+We use MLflow with Databricks as the backend for tracking and sharing experiments.
+
+The shared Databricks settings are already in `.env.example`. You only need to add the access token:
+
+**You need to create a free Databricks account and get invited to the workspace:**
+
+1. **Create a free Databricks account:**
+   - Go to: https://www.databricks.com/try-databricks
+   - Sign up for free
+   - Choose "Get started with Community Edition" or free trial
+
+2. **Wait for workspace invitation:**
+   - The project owner will invite you to their workspace
+   - Check your email for the invitation
+   - Accept the invitation
+
+3. **Get your workspace URL:**
+   - After accepting, you'll be redirected to the workspace
+
+4. **Generate your personal access token:**
+   - In Databricks, click your username (top right) → **Settings**
+   - Go to **Developer** → **Access Tokens**
+   - Click **Generate New Token**
+   - Give it a name (e.g., "data-challenge-local")
+   - Set expiration (10 days recommended - short project)
+   - Click **Generate**
+   - **⚠️ COPY THE TOKEN NOW** (shown only once!)
+
+5. **Add to `.env`:**
+   ```bash
+   DATABRICKS_HOST=https://dbc-XXXXXX-XXXX.cloud.databricks.com
+   DATABRICKS_TOKEN=dapi...your_token_here...
+   MLFLOW_EXPERIMENT_ID=<provided_by_owner>
+   ```
+
+> 💡 **Tip:** The experiment ID will be provided by the project owner. It's the same for everyone on the team.
+
+Replace the placeholder value in your `.env` file with the token you received.
+
+### 6. Configure DVC Remote
 
 DVC needs your OVH credentials configured locally (won't be committed to git):
 
@@ -70,7 +111,7 @@ dvc remote modify --local ovh-storage access_key_id $OVH_ACCESS_KEY_ID
 dvc remote modify --local ovh-storage secret_access_key $OVH_SECRET_ACCESS_KEY
 ```
 
-### 6. Pull Data from DVC
+### 7. Pull Data from DVC
 
 Download all project data from OVH Object Storage:
 
@@ -79,12 +120,18 @@ dvc pull
 ```
 
 This downloads:
-- Raw data in `data/raw/`
+- Raw data in `data/bronze/`
 - Any processed datasets that have been shared
 
-### 7. Verify Setup
+### 8. Verify Setup
 
 Test that everything works:
+
+#### Test MLflow Connection:
+```bash
+source .env
+uv run python -c "import mlflow; mlflow.set_tracking_uri('databricks'); print('MLflow connection successful!')"
+```
 
 #### Test DVC:
 ```bash
@@ -103,6 +150,16 @@ uv run streamlit run src/streamlit/streamlit_app.py
 ```
 
 ## Troubleshooting
+
+### MLflow Issues
+
+**"DATABRICKS_HOST environment variable not set"**
+- Make sure you copied `.env.example` to `.env`
+- Run `source .env` before running MLflow commands
+
+**"Invalid token" or "Authentication failed"**
+- Verify you replaced the `DATABRICKS_TOKEN` placeholder with the token from the project owner
+- Tokens may expire - ask for a new one if needed
 
 ### DVC Issues
 
