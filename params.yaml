@@ -1,0 +1,13 @@
+# DVC Parameters Configuration
+# Modify these values and run `dvc exp run` to experiment with different settings
+# Or use `dvc exp run --set-param train_models.n_trials=100` to override
+
+train_models:
+  model_type: linear_regression
+  run_name: linear_regression_run
+  model_name: linear_regression_model
+  n_trials: 50
+
+hyperparameters:
+  linear_regression:
+    fit_intercept: [true, false]

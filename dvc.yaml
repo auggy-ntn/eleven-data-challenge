@@ -1,36 +1,41 @@
 # DVC Pipeline Configuration
-# Define your data processing stages here
-# Each stage runs a command and tracks dependencies and outputs
-
 # To run the pipeline: dvc repro
+# To run experiments: dvc exp run
+# To run with param override: dvc exp run --set-param train_models.n_trials=100
 # To visualize: dvc dag
 
-# stages:
-#   # Stage 1: Convert raw data to intermediate format
-#   bronze_to_silver:
-#     cmd: uv run python3 src/data_pipelines/bronze_to_silver.py
-#     deps:
-#       - src/data_pipelines/bronze_to_silver.py
-#       - PUT INPUT BRONZE DATA FILE PATHS HERE
+stages:
+  # Stage 1: Convert raw data to intermediate format
+  bronze_to_silver:
+    cmd: uv run python -m src.pipelines.data.bronze_to_silver
+    deps:
+      - src/pipelines/data/bronze_to_silver.py
+      # - data/bronze/  # Add your bronze data dependencies here
+    # outs:
+    #   - data/silver/  # Add your silver data outputs here
 
-#     outs:
-#       - PUT OUTPUT SILVER DATA FILE PATHS HERE
+  # Stage 2: Convert silver data to gold format
+  silver_to_gold:
+    cmd: uv run python -m src.pipelines.data.silver_to_gold
+    deps:
+      - src/pipelines/data/silver_to_gold.py
+      # - data/silver/  # Add your silver data dependencies here
+    # outs:
+    #   - data/gold/  # Add your gold data outputs here
 
-#   # Stage 2: Convert silver data to gold format
-#   silver_to_gold:
-#     cmd: uv run python3 src/data_pipelines/silver_to_gold.py
-#     deps:
-#       - src/data_pipelines/silver_to_gold.py
-#       - PUT INPUT SILVER DATA FILE PATHS HERE
-#     outs:
-#       - PUT OUTPUT GOLD DATA FILE PATHS HERE
-
-#   # Stage 3: Train taxi time prediction models
-#   train_models:
-#     cmd: uv run python -m src.model_training_pipelines.train_models
-#     deps:
-#       - src/model_training_pipelines/train_models.py
-#       - PUT INPUT GOLD DATA FILE PATHS HERE
-#     outs:
-#       - PUT OUTPUT MODEL FILE PATHS HERE
-#       - PUT OUTPUT METRICS FILE PATHS HERE
+  # Stage 3: Train taxi time prediction models
+  train_models:
+    cmd: uv run python -m src.pipelines.models.train_models
+    deps:
+      - src/pipelines/models/train_models.py
+      - src/pipelines/models/linear_regression.py
+      - src/pipelines/utils/model_inputs_loading.py
+      # - data/gold/  # Add your gold data dependencies here
+    params:
+      - train_models
+      - hyperparameters
+    # outs:
+    #   - models/  # Add your model outputs here
+    # metrics:
+    #   - metrics.json:
+    #       cache: false

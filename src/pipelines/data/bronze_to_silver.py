@@ -2,6 +2,9 @@
 
 from src.utils.logger import logger
 
+# Pipeline Steps
+# Define your functions here and call them in the bronze_to_silver function.
+
 
 def bronze_to_silver():
     """Pipeline to transform bronze data to silver data.

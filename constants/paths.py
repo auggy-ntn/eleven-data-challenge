@@ -16,3 +16,6 @@ GOLD_DIR = DATA_DIR / "gold"
 
 # Configuration directory
 CONFIG_DIR = PROJECT_ROOT / "config"
+
+# DVC params file
+PARAMS_FILE = PROJECT_ROOT / "params.yaml"
