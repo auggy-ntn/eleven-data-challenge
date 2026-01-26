@@ -105,9 +105,6 @@ venv/*
 #MLFlow
 mlruns/
 
-# Trained models
-models/
-
 # Owner specific files
 .claude
 CLAUDE.md
