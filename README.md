@@ -1,4 +1,4 @@
-**XHEC Data Science Challenge: Mall Analytics for Unibail-Rodamco-Westfield**
+**XHEC Eleven Data Science Challenge: Plane Taxi Time Forecasting**
 
 <!-- Build & CI Status -->
 ![CI](https://github.com/auggy-ntn/eleven-data-challenge/actions/workflows/ci.yaml/badge.svg?event=push)
