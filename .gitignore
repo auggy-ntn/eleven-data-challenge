@@ -1,7 +1,6 @@
 # Data directories (ignore contents but keep structure)
 # Allow DVC files to be tracked in Git
 /data/*
-/*data*/
 !/data/*.dvc
 !/data/.gitignore
 !data/.gitkeep

@@ -1,0 +1,5 @@
+[core]
+    remote = ovh-storage
+['remote "ovh-storage"']
+    url = s3://eleven-plane-taxi-data/
+    endpointurl = https://s3.eu-west-par.io.cloud.ovh.net/

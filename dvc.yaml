@@ -1,0 +1,36 @@
+# DVC Pipeline Configuration
+# Define your data processing stages here
+# Each stage runs a command and tracks dependencies and outputs
+
+# To run the pipeline: dvc repro
+# To visualize: dvc dag
+
+# stages:
+#   # Stage 1: Convert raw data to intermediate format
+#   bronze_to_silver:
+#     cmd: uv run python3 src/data_pipelines/bronze_to_silver.py
+#     deps:
+#       - src/data_pipelines/bronze_to_silver.py
+#       - PUT INPUT BRONZE DATA FILE PATHS HERE
+
+#     outs:
+#       - PUT OUTPUT SILVER DATA FILE PATHS HERE
+
+#   # Stage 2: Convert silver data to gold format
+#   silver_to_gold:
+#     cmd: uv run python3 src/data_pipelines/silver_to_gold.py
+#     deps:
+#       - src/data_pipelines/silver_to_gold.py
+#       - PUT INPUT SILVER DATA FILE PATHS HERE
+#     outs:
+#       - PUT OUTPUT GOLD DATA FILE PATHS HERE
+
+#   # Stage 3: Train taxi time prediction models
+#   train_models:
+#     cmd: uv run python -m src.model_training_pipelines.train_models
+#     deps:
+#       - src/model_training_pipelines/train_models.py
+#       - PUT INPUT GOLD DATA FILE PATHS HERE
+#     outs:
+#       - PUT OUTPUT MODEL FILE PATHS HERE
+#       - PUT OUTPUT METRICS FILE PATHS HERE
