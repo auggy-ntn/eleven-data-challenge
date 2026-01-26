@@ -34,8 +34,3 @@ stages:
     params:
       - train_models
       - hyperparameters
-    # outs:
-    #   - models/  # Add your model outputs here
-    # metrics:
-    #   - metrics.json:
-    #       cache: false
