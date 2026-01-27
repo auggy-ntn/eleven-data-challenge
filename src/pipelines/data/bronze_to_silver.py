@@ -80,6 +80,20 @@ def standardize_geographic_values(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def standardize_datetime_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Standardize datetime columns (e.g., '1/1/2015 6:05')."""
+    datetime_columns = ["Flight Datetime", "AOBT", "ATOT"]
+
+    for col in datetime_columns:
+        if col in df.columns:
+            # Parse as datetime first
+            dt = pd.to_datetime(df[col], errors="coerce")
+            # Format as M/D/YYYY H:MM (no leading zeros, like weather data)
+            df[col] = dt.dt.strftime("%-m/%-d/%Y %-H:%M")
+
+    return df
+
+
 def bronze_to_silver():
     """Pipeline to transform bronze data to silver data.
 
@@ -126,6 +140,7 @@ def bronze_to_silver():
     logger.info(f"Reading test airport data from {BRONZE_TEST_AIRPORT_DATA_PATH}")
     test_airport_data = read_file(BRONZE_TEST_AIRPORT_DATA_PATH)
 
+    test_airport_data = standardize_datetime_columns(test_airport_data)
     test_airport_data = convert_object_columns_to_string(test_airport_data)
     test_airport_data = standardize_airport_columns(test_airport_data)
 
