@@ -62,7 +62,7 @@ def standardize_airport_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def transform_runway_stand_values(value: str) -> str:
-    """Transform values like 'Runway_0' to 'RUNWAY_1' (uppercase and add 1 to number)."""
+    """Transform values like 'Runway_0' to 'RUNWAY_1' (uppercase and add 1)."""
     match = re.match(r"([A-Za-z]+)_(\d+)", value)
     if match:
         prefix = match.group(1).upper()
@@ -108,7 +108,9 @@ def bronze_to_silver():
     # =========================================================================
     # Training Airport Data
     # =========================================================================
-    logger.info(f"Reading training airport data from {BRONZE_TRAINING_AIRPORT_DATA_PATH}")
+    logger.info(
+        f"Reading training airport data from {BRONZE_TRAINING_AIRPORT_DATA_PATH}"
+    )
     training_airport_data = read_file(BRONZE_TRAINING_AIRPORT_DATA_PATH)
 
     training_airport_data = convert_object_columns_to_string(training_airport_data)
