@@ -10,18 +10,18 @@ stages:
     cmd: uv run python -m src.pipelines.data.bronze_to_silver
     deps:
       - src/pipelines/data/bronze_to_silver.py
-      # - data/bronze/  # Add your bronze data dependencies here
-    # outs:
-    #   - data/silver/  # Add your silver data outputs here
+      - data/bronze/
+    outs:
+      - data/silver/
 
   # Stage 2: Convert silver data to gold format
   silver_to_gold:
     cmd: uv run python -m src.pipelines.data.silver_to_gold
     deps:
       - src/pipelines/data/silver_to_gold.py
-      # - data/silver/  # Add your silver data dependencies here
-    # outs:
-    #   - data/gold/  # Add your gold data outputs here
+      - data/silver/
+    outs:
+      - data/gold/
 
   # Stage 3: Train taxi time prediction models
   train_models:
