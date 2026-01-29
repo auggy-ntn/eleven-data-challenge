@@ -180,6 +180,101 @@ def cyclical_encode(df: pd.DataFrame, column: str, max_value: int) -> pd.DataFra
     return df
 
 
+def handle_nan_values(
+    df: pd.DataFrame,
+    median_values: dict | None = None,
+) -> tuple[pd.DataFrame, dict]:
+    """Handle NaN values by dropping high-NaN columns and filling others with median.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        DataFrame to process.
+    median_values: dict | None
+        Pre-computed median values for consistency between train/test.
+        If None, medians are computed from the data.
+
+    Returns:
+    -------
+    tuple[pd.DataFrame, dict]
+        Processed DataFrame and median values dict.
+    """
+    df = df.copy()
+
+    # Columns to drop (>10k NaN in training)
+    cols_to_drop = [
+        "precipIntensity",
+        "precipProbability",
+        "pressure",
+        "windBearing",
+        "cloudCover",
+        "uvIndex",
+    ]
+
+    # Drop columns that exist
+    cols_to_drop = [col for col in cols_to_drop if col in df.columns]
+    df = df.drop(columns=cols_to_drop)
+
+    # Fill remaining NaN with median
+    if median_values is None:
+        median_values = {}
+
+    # Columns that might have NaN and need median filling
+    numeric_cols = df.select_dtypes(include=["float64", "int64"]).columns
+
+    for col in numeric_cols:
+        if df[col].isna().any():
+            if col in median_values:
+                # Use pre-computed median
+                df[col] = df[col].fillna(median_values[col])
+            else:
+                # Compute and store median
+                median_val = df[col].median()
+                median_values[col] = median_val
+                df[col] = df[col].fillna(median_val)
+
+    return df, median_values
+
+
+def compute_delay_and_drop_flight_datetime(df: pd.DataFrame) -> pd.DataFrame:
+    """Compute delay, plane counts within time windows, then drop Flight Datetime."""
+    df = df.copy()
+
+    # Parse once
+    flight_dt = pd.to_datetime(
+        df["Flight Datetime"], format="%m/%d/%Y %H:%M", errors="coerce"
+    )
+    aobt_dt = pd.to_datetime(df["AOBT"], format="%m/%d/%Y %H:%M", errors="coerce")
+    # Delay in seconds
+    df["delay_seconds"] = (aobt_dt - flight_dt).dt.total_seconds()
+    # Sort by parsed AOBT (faster than reparsing after sort)
+    df = df.assign(_aobt_dt=aobt_dt).sort_values("_aobt_dt").reset_index(drop=True)
+    # Convert to int64 seconds since epoch
+    aobt_sorted = df["_aobt_dt"]
+    valid = aobt_sorted.notna().to_numpy()
+    ts = aobt_sorted.values.astype("datetime64[s]").astype(np.int64)
+    ts_valid = ts[valid]
+
+    def count_planes_in_window(ts_sorted: np.ndarray, minutes: int) -> np.ndarray:
+        w = minutes * 60
+        left = np.searchsorted(ts_sorted, ts_sorted - w, side="left")
+        right = np.searchsorted(ts_sorted, ts_sorted + w, side="right")
+        return right - left - 1  # exclude self
+
+    planes_30 = np.full(len(df), np.nan)
+    planes_10 = np.full(len(df), np.nan)
+
+    planes_30[valid] = count_planes_in_window(ts_valid, 30)
+    planes_10[valid] = count_planes_in_window(ts_valid, 10)
+
+    df["planes_30min"] = planes_30
+    df["planes_10min"] = planes_10
+
+    # Cleanup
+    df = df.drop(columns=["Flight Datetime", "_aobt_dt"])
+    return df
+
+
 def encode_features(
     df: pd.DataFrame,
     datetime_columns: list[str],
@@ -238,22 +333,67 @@ def encode_features(
             # Drop intermediate columns and original datetime column
             df = df.drop(columns=[hour_col, dow_col, month_col, dom_col, col])
 
-    # Categorical encoding (label encoding)
+    # One-hot encoding for categorical columns
     for col in categorical_columns:
         if col in df.columns:
-            if col in category_mappings:
-                # Use pre-defined categories
-                cat_type = pd.CategoricalDtype(categories=category_mappings[col])
-                df[col] = df[col].astype(cat_type).cat.codes
-            else:
-                # Learn categories from data
-                cat_col = df[col].astype("category")
-                category_mappings[col] = list(cat_col.cat.categories)
-                df[col] = cat_col.cat.codes
+            # Apply one-hot encoding
+            dummies = pd.get_dummies(df[col], prefix=col, dtype=int)
+            df = pd.concat([df.drop(columns=[col]), dummies], axis=1)
+
+            if col not in category_mappings:
+                # Store the dummy column names for consistency
+                category_mappings[col] = list(dummies.columns)
+
+    # Ensure consistent columns between train and test
+    if category_mappings:
+        all_expected_cols = []
+        for _, dummy_cols in category_mappings.items():
+            all_expected_cols.extend(dummy_cols)
+
+        # Add missing columns (set to 0)
+        for dummy_col in all_expected_cols:
+            if dummy_col not in df.columns:
+                df[dummy_col] = 0
+
+        # Remove extra columns not in training
+        extra_cols = [
+            c
+            for c in df.columns
+            if any(
+                c.startswith(f"{cat}_") and c not in category_mappings.get(cat, [])
+                for cat in categorical_columns
+            )
+        ]
+        if extra_cols:
+            df = df.drop(columns=extra_cols)
 
     # Drop ATOT column
     if "ATOT" in df.columns:
         df = df.drop(columns=["ATOT"])
+    if "Aircraft Model" in df.columns:
+        df = df.drop(columns=["Aircraft Model"])
+
+    # Convert stand and runway to numerical (e.g., "STAND_62" -> 62, "RUNWAY_3" -> 3)
+    if "stand" in df.columns:
+        df["stand"] = df["stand"].str.extract(r"(\d+)").astype(int)
+    if "runway" in df.columns:
+        df["runway"] = df["runway"].str.extract(r"(\d+)").astype(int)
+
+    # Store column order for consistency
+    if "_column_order" not in category_mappings:
+        category_mappings["_column_order"] = list(df.columns)
+    else:
+        # Reorder columns to match training
+        expected_cols = category_mappings["_column_order"]
+        current_cols = set(df.columns)
+
+        # Add missing columns as 0
+        for col in expected_cols:
+            if col not in current_cols:
+                df[col] = 0
+
+        # Keep only expected columns in the right order
+        df = df[expected_cols]
 
     return df, category_mappings
 
@@ -308,16 +448,43 @@ def silver_to_gold():
     test_airport_data = merge_airport_weather_data(
         test_airport_data, training_weather_data
     )
+
+    # Filter out rows with taxi time < 360 seconds (6 minutes) - likely data errors
+    logger.info("Filtering out rows with actual_taxi_out_sec < 360")
+    train_before = len(training_airport_data)
+    test_before = len(test_airport_data)
+    training_airport_data = training_airport_data[
+        training_airport_data["actual_taxi_out_sec"] >= 360
+    ].reset_index(drop=True)
+    test_airport_data = test_airport_data[
+        test_airport_data["actual_taxi_out_sec"] >= 360
+    ].reset_index(drop=True)
+    logger.info(f"Filtered training: {train_before} -> {len(training_airport_data)}")
+    logger.info(f"Filtered test: {test_before} -> {len(test_airport_data)}")
+
+    logger.info("Handling NaN values (training - computing medians)")
+    training_airport_data, median_values = handle_nan_values(training_airport_data)
+    logger.info("Handling NaN values (test - using training medians)")
+    test_airport_data, _ = handle_nan_values(
+        test_airport_data, median_values=median_values
+    )
+
+    logger.info("Computing delay and dropping Flight Datetime")
+    training_airport_data = compute_delay_and_drop_flight_datetime(
+        training_airport_data
+    )
+    test_airport_data = compute_delay_and_drop_flight_datetime(test_airport_data)
+
     logger.info("Encoding features (training - learning categories)")
     training_airport_data, category_mappings = encode_features(
         training_airport_data,
-        ["Flight Datetime", "AOBT"],
+        ["AOBT"],
         ["summary", "icon", "precipType"],
     )
     logger.info("Encoding features (test - using training categories)")
     test_airport_data, _ = encode_features(
         test_airport_data,
-        ["Flight Datetime", "AOBT"],
+        ["AOBT"],
         ["summary", "icon", "precipType"],
         category_mappings=category_mappings,
     )

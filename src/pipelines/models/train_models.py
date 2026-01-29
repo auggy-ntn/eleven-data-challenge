@@ -1,6 +1,7 @@
 """Pipeline to train models."""
 
 from src.pipelines.models.linear_regression import train_linear_regression_model
+from src.pipelines.models.xgboost_model import train_xgboost_model
 from src.pipelines.utils.model_inputs_loading import (
     load_hyperparameter_grid,
     load_nb_optimization_trials,
@@ -35,6 +36,23 @@ def train_models(model_type: str, run_name: str, model_name: str):
             X_test=X_test,
             y_test=y_test,
             hyperparameter_grid=linear_hyperparameter_grid,
+            n_trials=nb_optimization_trials,
+        )
+
+    elif model_type == "xgboost":
+        # Load hyperparameter grid and number of optimization trials
+        xgboost_hyperparameter_grid = load_hyperparameter_grid(model_type)
+        nb_optimization_trials = load_nb_optimization_trials()
+
+        # Train XGBoost model --> Stored and logged in MLflow
+        train_xgboost_model(
+            run_name=run_name,
+            model_name=model_name,
+            X_train=X_train,
+            y_train=y_train,
+            X_test=X_test,
+            y_test=y_test,
+            hyperparameter_grid=xgboost_hyperparameter_grid,
             n_trials=nb_optimization_trials,
         )
 
