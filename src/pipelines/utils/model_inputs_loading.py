@@ -1,8 +1,10 @@
 """Utilities for loading model inputs."""
 
 import pandas as pd
+import shap
 import yaml
 
+from constants.column_names import ACTUAL_TAXI_OUT_SEC
 from constants.paths import (
     GOLD_TEST_AIRPORT_DATA_CLEAN_PATH,
     GOLD_TEST_AIRPORT_DATA_PATH,
@@ -11,7 +13,7 @@ from constants.paths import (
     PARAMS_FILE,
 )
 
-TARGET_COLUMN = "actual_taxi_out_sec"
+TARGET_COLUMN = ACTUAL_TAXI_OUT_SEC
 
 
 def load_params() -> dict:
@@ -104,3 +106,48 @@ def load_nb_optimization_trials() -> int:
     """
     params = load_params()
     return params["train_models"]["n_trials"]
+
+
+def load_prediction_data(n_samples: int) -> tuple[pd.DataFrame, pd.Series]:
+    """Load data for model prediction and SHAP explanations.
+
+    Args:
+        n_samples (int): Number of samples to load for predictions.
+
+    Returns:
+        tuple: A tuple containing:
+            - X_test (pd.DataFrame): Feature matrix for predictions.
+            - y_test (pd.Series): Target vector for predictions.
+    """
+    test_data = pd.read_parquet(GOLD_TEST_AIRPORT_DATA_PATH)
+    test_data = test_data.sample(n=n_samples).reset_index(drop=True)
+    X_test = test_data.drop(columns=[TARGET_COLUMN])
+    y_test = test_data[TARGET_COLUMN]
+    return X_test, y_test
+
+
+def compute_shap_values(
+    model, model_type: str, X: pd.DataFrame
+) -> tuple[float, pd.DataFrame]:
+    """Compute SHAP values for model predictions.
+
+    Args:
+        model: Trained model.
+        model_type (str): Type of the model.
+        X (pd.DataFrame): Feature matrix.
+
+    Returns:
+        tuple: A tuple containing:
+            - base_value (float): The expected value of the model output.
+            - shap_values (pd.DataFrame): SHAP values for each feature.
+    """
+    if model_type == "xgboost":
+        explainer = shap.TreeExplainer(model)
+
+    elif model_type == "linear_regression":
+        explainer = shap.LinearExplainer(model, X)
+
+    base_value = explainer.expected_value
+    shap_values = explainer.shap_values(X)
+
+    return base_value, shap_values

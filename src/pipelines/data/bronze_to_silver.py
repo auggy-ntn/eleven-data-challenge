@@ -4,7 +4,7 @@ import re
 
 import pandas as pd
 
-from constants.column_names import RUNWAY, STAND
+from constants.column_names import AOBT, ATOT, FLIGHT_DATETIME, RUNWAY, STAND
 from constants.paths import (
     BRONZE_AC_CHAR_PATH,
     BRONZE_GEOGRAPHIC_DATA_PATH,
@@ -82,7 +82,7 @@ def standardize_geographic_values(df: pd.DataFrame) -> pd.DataFrame:
 
 def standardize_datetime_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Standardize datetime columns (e.g., '1/1/2015 6:05')."""
-    datetime_columns = ["Flight Datetime", "AOBT", "ATOT"]
+    datetime_columns = [FLIGHT_DATETIME, AOBT, ATOT]
 
     for col in datetime_columns:
         if col in df.columns:

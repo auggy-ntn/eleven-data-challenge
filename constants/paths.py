@@ -13,6 +13,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 BRONZE_DIR = DATA_DIR / "bronze"
 SILVER_DIR = DATA_DIR / "silver"
 GOLD_DIR = DATA_DIR / "gold"
+PREDICTIONS_DIR = DATA_DIR / "predictions"
 
 # Bronze paths
 BRONZE_TRAINING_AIRPORT_DATA_PATH = (
@@ -61,6 +62,9 @@ GOLD_TRAINING_AIRPORT_DATA_CLEAN_PATH = (
     GOLD_DIR / "training_set_airport_data_clean.parquet"
 )
 GOLD_TEST_AIRPORT_DATA_CLEAN_PATH = GOLD_DIR / "test_set_airport_data_clean.parquet"
+# Dashboard data paths
+DASHBOARD_DATA_CSV_PATH = PREDICTIONS_DIR / "dashboard_data.csv"
+DASHBOARD_DATA_PARQUET_PATH = PREDICTIONS_DIR / "dashboard_data.parquet"
 
 # Configuration directory
 CONFIG_DIR = PROJECT_ROOT / "config"
