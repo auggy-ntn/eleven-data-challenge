@@ -37,10 +37,10 @@ stages:
       - hyperparameters
 
   # Stage 4: Create predictions using trained models
-  create_prediction:
-    cmd: uv run python -m src.pipelines.models.create_prediction
+  create_predictions:
+    cmd: uv run python -m src.pipelines.models.create_predictions
     deps:
-      - src/pipelines/models/create_prediction.py
+      - src/pipelines/models/create_predictions.py
       - src/pipelines/utils/model_prediction_making.py
       - data/gold/
     outs:

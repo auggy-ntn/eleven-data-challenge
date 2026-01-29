@@ -23,7 +23,7 @@ datasets:
 create_prediction:
   n_samples: 10
   model_type: xgboost
-  run_id: null  # Use the best model if null
+  run_id: 1c87f7c758314fa585e69b6bc6b66298  # Use the best model if null
   random_seed: 42
 
 hyperparameters:

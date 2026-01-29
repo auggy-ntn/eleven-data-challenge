@@ -10,8 +10,8 @@ stages:
       nfiles: 8
     - path: src/pipelines/data/bronze_to_silver.py
       hash: md5
-      md5: 0db6016504e20c97c4ca0aee3c90c764
-      size: 9316
+      md5: 1220aed9d09f6241659c4c539fd3dcbe
+      size: 9339
     outs:
     - path: data/silver/
       hash: md5
