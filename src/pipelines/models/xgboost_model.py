@@ -1,6 +1,6 @@
-"""Linear Regression Model Implementation.
+"""XGBoost Model Implementation.
 
-Defines a training, optimization, and evaluation pipeline for a linear regression model.
+Defines a training, optimization, and evaluation pipeline for an XGBoost model.
 Logs metrics and model artifacts using MLflow.
 """
 
@@ -9,12 +9,12 @@ import mlflow
 from mlflow.models.signature import infer_signature
 import optuna
 import pandas as pd
-from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_percentage_error, root_mean_squared_error
+from xgboost import XGBRegressor
 
 
 # Model Optimization Function
-def optimize_linear_regression_model(
+def optimize_xgboost_model(
     X_train: pd.DataFrame,
     y_train: pd.Series,
     X_test: pd.DataFrame,
@@ -23,7 +23,7 @@ def optimize_linear_regression_model(
     n_trials: int = 50,
     **kwargs,
 ) -> dict:
-    """Optimize a Linear Regression model with Optuna.
+    """Optimize an XGBoost model with Optuna.
 
     Args:
         X_train (pd.DataFrame): Training feature matrix.
@@ -33,7 +33,7 @@ def optimize_linear_regression_model(
         hyperparameter_grid (dict | None): Hyperparameter grid for optimization.
             If None, a default search space is used.
         n_trials (int, optional): Number of Optuna trials. Defaults to 50.
-        **kwargs: Additional keyword arguments for LinearRegression.
+        **kwargs: Additional keyword arguments for XGBRegressor.
 
     Returns:
         dict: Best hyperparameters found by Optuna.
@@ -50,18 +50,49 @@ def optimize_linear_regression_model(
         """
         # Use provided grid or create default search space
         if hyperparameter_grid is not None:
-            params = {
-                key: trial.suggest_categorical(key, values)
-                for key, values in hyperparameter_grid.items()
-            }
+            params = {}
+            for key, values in hyperparameter_grid.items():
+                if isinstance(values, list):
+                    params[key] = trial.suggest_categorical(key, values)
+                elif isinstance(values, dict):
+                    # Handle range-based parameters
+                    if values.get("type") == "int":
+                        params[key] = trial.suggest_int(
+                            key,
+                            values["low"],
+                            values["high"],
+                            log=values.get("log", False),
+                        )
+                    elif values.get("type") == "float":
+                        params[key] = trial.suggest_float(
+                            key,
+                            values["low"],
+                            values["high"],
+                            log=values.get("log", False),
+                        )
         else:
-            # Default search space for Linear Regression
+            # Default search space for XGBoost
             params = {
-                "fit_intercept": trial.suggest_categorical(
-                    "fit_intercept", [True, False]
+                "n_estimators": trial.suggest_int("n_estimators", 100, 1000),
+                "max_depth": trial.suggest_int("max_depth", 3, 10),
+                "learning_rate": trial.suggest_float(
+                    "learning_rate", 0.01, 0.3, log=True
                 ),
+                "subsample": trial.suggest_float("subsample", 0.6, 1.0),
+                "colsample_bytree": trial.suggest_float("colsample_bytree", 0.6, 1.0),
+                "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
+                "gamma": trial.suggest_float("gamma", 0.0, 5.0),
+                "reg_alpha": trial.suggest_float("reg_alpha", 1e-8, 10.0, log=True),
+                "reg_lambda": trial.suggest_float("reg_lambda", 1e-8, 10.0, log=True),
             }
-        model = LinearRegression(**params, **kwargs)
+
+        model = XGBRegressor(
+            **params,
+            random_state=42,
+            n_jobs=-1,
+            verbosity=0,
+            **kwargs,
+        )
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
         optimization_metric = root_mean_squared_error(y_test, y_pred)
@@ -75,7 +106,7 @@ def optimize_linear_regression_model(
 
 
 # Model Training and Logging Function
-def train_linear_regression_model(
+def train_xgboost_model(
     run_name: str,
     model_name: str,
     X_train: pd.DataFrame,
@@ -86,7 +117,7 @@ def train_linear_regression_model(
     n_trials: int = 50,
     **kwargs,
 ):
-    """Train and log a Linear Regression model using MLflow.
+    """Train and log an XGBoost model using MLflow.
 
     Args:
         run_name (str, optional): Name of the MLflow run.
@@ -98,13 +129,13 @@ def train_linear_regression_model(
         hyperparameter_grid (dict | None): Hyperparameter grid for optimization.
             If None, a default search space is used. Defaults to None.
         n_trials (int, optional): Number of Optuna trials. Defaults to 50.
-        **kwargs: Additional keyword arguments for LinearRegression.
+        **kwargs: Additional keyword arguments for XGBRegressor.
     """
     # Load environment variables for MLflow configuration
     load_dotenv()
 
     with mlflow.start_run(run_name=run_name):
-        best_params = optimize_linear_regression_model(
+        best_params = optimize_xgboost_model(
             X_train,
             y_train,
             X_test,
@@ -115,7 +146,13 @@ def train_linear_regression_model(
         )
 
         # Fit model with best parameters
-        model = LinearRegression(**best_params, **kwargs)
+        model = XGBRegressor(
+            **best_params,
+            random_state=42,
+            n_jobs=-1,
+            verbosity=0,
+            **kwargs,
+        )
         model.fit(X_train, y_train)
 
         # Compute evalutation metrics - TODO: Add more metrics
@@ -132,7 +169,7 @@ def train_linear_regression_model(
 
         # Log model
         signature = infer_signature(X_train, model.predict(X_train))
-        mlflow.sklearn.log_model(
+        mlflow.xgboost.log_model(
             model,
             name=model_name,
             signature=signature,

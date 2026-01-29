@@ -3,11 +3,12 @@
 # Or use `dvc exp run --set-param train_models.n_trials=100` to override
 
 train_models:
-  model_type: linear_regression
-  run_name: linear_regression_run
-  model_name: linear_regression_model
+  model_type: "xgboost"
+  run_name: "xgboost_run"
+  model_name: "xgboost_model"
   n_trials: 50
 
 hyperparameters:
   linear_regression:
     fit_intercept: [true, false]
+  xgboost: null  # Uses default search space in xgboost_model.py

@@ -1,8 +1,15 @@
 """Utilities for loading model inputs."""
 
+import pandas as pd
 import yaml
 
-from constants.paths import PARAMS_FILE
+from constants.paths import (
+    GOLD_TEST_AIRPORT_DATA_PATH,
+    GOLD_TRAINING_AIRPORT_DATA_PATH,
+    PARAMS_FILE,
+)
+
+TARGET_COLUMN = "actual_taxi_out_sec"
 
 
 def load_params() -> dict:
@@ -25,8 +32,18 @@ def load_training_data():
             - X_test (pd.DataFrame): Testing feature matrix.
             - y_test (pd.Series): Testing target vector.
     """
-    # Implement your data loading logic here
-    pass
+    # Load gold datasets
+    train_data = pd.read_parquet(GOLD_TRAINING_AIRPORT_DATA_PATH)
+    test_data = pd.read_parquet(GOLD_TEST_AIRPORT_DATA_PATH)
+
+    # Split into features and target
+    X_train = train_data.drop(columns=[TARGET_COLUMN])
+    y_train = train_data[TARGET_COLUMN]
+
+    X_test = test_data.drop(columns=[TARGET_COLUMN])
+    y_test = test_data[TARGET_COLUMN]
+
+    return X_train, y_train, X_test, y_test
 
 
 def load_hyperparameter_grid(model_type: str) -> dict:
