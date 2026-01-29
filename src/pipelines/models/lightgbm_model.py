@@ -101,7 +101,7 @@ def optimize_lightgbm_model(
         model = LGBMRegressor(
             **params,
             random_state=42,
-            n_jobs=-1,
+            device="gpu",
             verbosity=-1,
             **kwargs,
         )
@@ -163,7 +163,7 @@ def train_lightgbm_model(
         model = LGBMRegressor(
             **best_params,
             random_state=42,
-            n_jobs=-1,
+            device="gpu",
             verbosity=-1,
             **kwargs,
         )

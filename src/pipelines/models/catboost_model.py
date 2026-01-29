@@ -101,7 +101,8 @@ def optimize_catboost_model(
         model = CatBoostRegressor(
             **params,
             random_seed=42,
-            thread_count=-1,
+            task_type="GPU",
+            devices="0",
             verbose=False,
             **kwargs,
         )
@@ -163,7 +164,8 @@ def train_catboost_model(
         model = CatBoostRegressor(
             **best_params,
             random_seed=42,
-            thread_count=-1,
+            task_type="GPU",
+            devices="0",
             verbose=False,
             **kwargs,
         )

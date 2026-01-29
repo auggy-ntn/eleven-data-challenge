@@ -23,7 +23,7 @@ def optimize_random_forest_model(
     X_train: pd.DataFrame,
     y_train: pd.Series,
     hyperparameter_grid: dict | None,
-    n_trials: int = 30,
+    n_trials: int = 15,
     validation_split: float = 0.2,
     **kwargs,
 ) -> dict:
@@ -36,7 +36,7 @@ def optimize_random_forest_model(
         y_train (pd.Series): Training target vector.
         hyperparameter_grid (dict | None): Hyperparameter grid for optimization.
             If None, a default search space is used.
-        n_trials (int, optional): Number of Optuna trials. Defaults to 30.
+        n_trials (int, optional): Number of Optuna trials. Defaults to 15.
         validation_split (float, optional): Fraction of training data to use for
             validation (taken from the end). Defaults to 0.2.
         **kwargs: Additional keyword arguments for RandomForestRegressor.
@@ -121,7 +121,7 @@ def train_random_forest_model(
     X_test: pd.DataFrame,
     y_test: pd.Series,
     hyperparameter_grid: dict | None = None,
-    n_trials: int = 30,
+    n_trials: int = 15,
     **kwargs,
 ):
     """Train and log a Random Forest model using MLflow.

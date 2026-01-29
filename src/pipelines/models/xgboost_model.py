@@ -101,7 +101,8 @@ def optimize_xgboost_model(
         model = XGBRegressor(
             **params,
             random_state=42,
-            n_jobs=-1,
+            tree_method="gpu_hist",
+            device="cuda",
             verbosity=0,
             **kwargs,
         )
@@ -163,7 +164,8 @@ def train_xgboost_model(
         model = XGBRegressor(
             **best_params,
             random_state=42,
-            n_jobs=-1,
+            tree_method="gpu_hist",
+            device="cuda",
             verbosity=0,
             **kwargs,
         )
