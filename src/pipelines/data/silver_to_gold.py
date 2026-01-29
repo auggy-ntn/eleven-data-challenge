@@ -3,6 +3,50 @@
 import numpy as np
 import pandas as pd
 
+from constants.column_names import (
+    ACTUAL_TAXI_OUT_SEC,
+    AIRCRAFT_MODEL,
+    AIRCRAFT_SPAN,
+    AIRPORT_ARRIVAL_DEPARTURE,
+    AOBT,
+    APPARENT_TEMPERATURE,
+    ATOT,
+    CLOUD_COVER,
+    DELAY_SECONDS,
+    DEW_POINT,
+    DISTANCE,
+    DISTANCE_PROXY_M,
+    FLIGHT_DATETIME,
+    FLIGHT_NUMBER,
+    HELICOPTER,
+    HOUR,
+    ICON,
+    LAT_RUNWAY,
+    LAT_STAND,
+    LNG_RUNWAY,
+    LNG_STAND,
+    LOG_DISTANCE,
+    LOG_DISTANCE_M,
+    MONTH,
+    MOVEMENT_TYPE,
+    PLANES_10MIN,
+    PLANES_30MIN,
+    PRECIP_INTENSITY,
+    PRECIP_PROBABILITY,
+    PRECIP_TYPE,
+    PRESSURE,
+    PRIVATE_FLIGHT,
+    Q_DEP_ARR,
+    RUNWAY,
+    STAND,
+    SUMMARY,
+    TIME_HOURLY,
+    UV_INDEX,
+    WEEKDAY,
+    WIND_BEARING,
+    WIND_GUST,
+    YEAR,
+)
 from constants.paths import (
     GOLD_DIR,
     GOLD_TEST_AIRPORT_DATA_CLEAN_PATH,
@@ -52,12 +96,12 @@ def create_runway_stand_distances(geographic_df: pd.DataFrame) -> pd.DataFrame:
         DataFrame containing runway, stand, and distance between them.
     """
     # Create dataframe with distinct runways and their coordinates
-    runways_df = geographic_df[["runway", "Lat_runway", "Lng_runway"]].drop_duplicates()
-    runways_df = runways_df.rename(columns={"Lat_runway": "lat", "Lng_runway": "lng"})
+    runways_df = geographic_df[[RUNWAY, LAT_RUNWAY, LNG_RUNWAY]].drop_duplicates()
+    runways_df = runways_df.rename(columns={LAT_RUNWAY: "lat", LNG_RUNWAY: "lng"})
 
     # Create dataframe with distinct stands and their coordinates
-    stands_df = geographic_df[["stand", "Lat_stand", "Lng_stand"]].drop_duplicates()
-    stands_df = stands_df.rename(columns={"Lat_stand": "lat", "Lng_stand": "lng"})
+    stands_df = geographic_df[[STAND, LAT_STAND, LNG_STAND]].drop_duplicates()
+    stands_df = stands_df.rename(columns={LAT_STAND: "lat", LNG_STAND: "lng"})
 
     # Cycle through all combinations to calculate distances
     distance_records = []
@@ -68,10 +112,10 @@ def create_runway_stand_distances(geographic_df: pd.DataFrame) -> pd.DataFrame:
             )
             distance_records.append(
                 {
-                    "runway": runway["runway"],
-                    "stand": stand["stand"],
-                    "distance": distance,
-                    "log_distance": np.log(distance),
+                    RUNWAY: runway[RUNWAY],
+                    STAND: stand[STAND],
+                    DISTANCE: distance,
+                    LOG_DISTANCE: np.log(distance),
                 }
             )
 
@@ -98,8 +142,8 @@ def add_distance_columns(
         Airport data with distance and log_distance columns added.
     """
     return airport_data.merge(
-        runway_stand_distances[["runway", "stand", "distance", "log_distance"]],
-        on=["runway", "stand"],
+        runway_stand_distances[[RUNWAY, STAND, DISTANCE, LOG_DISTANCE]],
+        on=[RUNWAY, STAND],
         how="left",
     )
 
@@ -107,21 +151,21 @@ def add_distance_columns(
 def clean_weather_data(weather_data: pd.DataFrame) -> pd.DataFrame:
     """Clean weather data by dropping unnecessary columns."""
     columns_to_drop = [
-        # "Flight Number" - kept for private_flight column creation
-        "Aircraft Span",
-        "Airport Arrival/Departure",
-        "Movement Type",
-        "Distance_proxy_m",
-        "Log_distance_m",
-        "Year",
-        "Month",
-        "Weekday",
-        "Hour",
-        "Q_dep_arr",
-        "time_hourly",
-        "apparentTemperature",
-        "dewPoint",
-        "windGust",
+        # FLIGHT_NUMBER - kept for private_flight column creation
+        AIRCRAFT_SPAN,
+        AIRPORT_ARRIVAL_DEPARTURE,
+        MOVEMENT_TYPE,
+        DISTANCE_PROXY_M,
+        LOG_DISTANCE_M,
+        YEAR,
+        MONTH,
+        WEEKDAY,
+        HOUR,
+        Q_DEP_ARR,
+        TIME_HOURLY,
+        APPARENT_TEMPERATURE,
+        DEW_POINT,
+        WIND_GUST,
     ]
     # Only drop columns that exist in the dataframe
     columns_to_drop = [col for col in columns_to_drop if col in weather_data.columns]
@@ -146,7 +190,7 @@ def merge_airport_weather_data(
     pd.DataFrame
         Merged DataFrame with airport and weather data.
     """
-    merge_columns = ["Flight Datetime", "Aircraft Model", "AOBT", "ATOT"]
+    merge_columns = [FLIGHT_DATETIME, AIRCRAFT_MODEL, AOBT, ATOT]
 
     # Ensure merge columns have consistent types (convert to string)
     airport_data = airport_data.copy()
@@ -184,13 +228,13 @@ def add_private_flight_column(df: pd.DataFrame) -> pd.DataFrame:
     private_codes = ["NJE", "VJT", "PVT", "SIG"]
 
     # Extract airline prefix (2-3 letter code at start of Flight Number)
-    airline_prefix = df["Flight Number"].str.extract(r"^([A-Z]{2,3})", expand=False)
+    airline_prefix = df[FLIGHT_NUMBER].str.extract(r"^([A-Z]{2,3})", expand=False)
 
     # Create private_flight column: 1 if private, 0 otherwise
-    df["private_flight"] = airline_prefix.isin(private_codes).astype(int)
+    df[PRIVATE_FLIGHT] = airline_prefix.isin(private_codes).astype(int)
 
     # Drop Flight Number column
-    df = df.drop(columns=["Flight Number"])
+    df = df.drop(columns=[FLIGHT_NUMBER])
 
     return df
 
@@ -240,7 +284,7 @@ def add_helicopter_column(df: pd.DataFrame) -> pd.DataFrame:
     ]
 
     # Create helicopter column: 1 if helicopter, 0 otherwise
-    df["helicopter"] = df["Aircraft Model"].isin(helicopter_models).astype(int)
+    df[HELICOPTER] = df[AIRCRAFT_MODEL].isin(helicopter_models).astype(int)
 
     return df
 
@@ -290,12 +334,12 @@ def handle_nan_values(
 
     # Columns to drop (>10k NaN in training)
     cols_to_drop = [
-        "precipIntensity",
-        "precipProbability",
-        "pressure",
-        "windBearing",
-        "cloudCover",
-        "uvIndex",
+        PRECIP_INTENSITY,
+        PRECIP_PROBABILITY,
+        PRESSURE,
+        WIND_BEARING,
+        CLOUD_COVER,
+        UV_INDEX,
     ]
 
     # Drop columns that exist
@@ -329,11 +373,11 @@ def compute_delay_and_drop_flight_datetime(df: pd.DataFrame) -> pd.DataFrame:
 
     # Parse once
     flight_dt = pd.to_datetime(
-        df["Flight Datetime"], format="%m/%d/%Y %H:%M", errors="coerce"
+        df[FLIGHT_DATETIME], format="%m/%d/%Y %H:%M", errors="coerce"
     )
-    aobt_dt = pd.to_datetime(df["AOBT"], format="%m/%d/%Y %H:%M", errors="coerce")
+    aobt_dt = pd.to_datetime(df[AOBT], format="%m/%d/%Y %H:%M", errors="coerce")
     # Delay in seconds
-    df["delay_seconds"] = (aobt_dt - flight_dt).dt.total_seconds()
+    df[DELAY_SECONDS] = (aobt_dt - flight_dt).dt.total_seconds()
     # Sort by parsed AOBT (faster than reparsing after sort)
     df = df.assign(_aobt_dt=aobt_dt).sort_values("_aobt_dt").reset_index(drop=True)
     # Convert to int64 seconds since epoch
@@ -354,11 +398,11 @@ def compute_delay_and_drop_flight_datetime(df: pd.DataFrame) -> pd.DataFrame:
     planes_30[valid] = count_planes_in_window(ts_valid, 30)
     planes_10[valid] = count_planes_in_window(ts_valid, 10)
 
-    df["planes_30min"] = planes_30
-    df["planes_10min"] = planes_10
+    df[PLANES_30MIN] = planes_30
+    df[PLANES_10MIN] = planes_10
 
     # Cleanup
-    df = df.drop(columns=["Flight Datetime", "_aobt_dt"])
+    df = df.drop(columns=[FLIGHT_DATETIME, "_aobt_dt"])
     return df
 
 
@@ -455,16 +499,16 @@ def encode_features(
             df = df.drop(columns=extra_cols)
 
     # Drop ATOT column
-    if "ATOT" in df.columns:
-        df = df.drop(columns=["ATOT"])
-    if "Aircraft Model" in df.columns:
-        df = df.drop(columns=["Aircraft Model"])
+    if ATOT in df.columns:
+        df = df.drop(columns=[ATOT])
+    if AIRCRAFT_MODEL in df.columns:
+        df = df.drop(columns=[AIRCRAFT_MODEL])
 
     # Convert stand and runway to numerical (e.g., "STAND_62" -> 62, "RUNWAY_3" -> 3)
-    if "stand" in df.columns:
-        df["stand"] = df["stand"].str.extract(r"(\d+)").astype(int)
-    if "runway" in df.columns:
-        df["runway"] = df["runway"].str.extract(r"(\d+)").astype(int)
+    if STAND in df.columns:
+        df[STAND] = df[STAND].str.extract(r"(\d+)").astype(int)
+    if RUNWAY in df.columns:
+        df[RUNWAY] = df[RUNWAY].str.extract(r"(\d+)").astype(int)
 
     # Store column order for consistency
     if "_column_order" not in category_mappings:
@@ -545,16 +589,16 @@ def silver_to_gold():
     test_airport_data = add_helicopter_column(test_airport_data)
 
     # Filter out rows with taxi time == 0 (data errors) or >= 7200 seconds (2 hours)
-    logger.info("Filtering out rows with actual_taxi_out_sec == 0 or >= 7200")
+    logger.info(f"Filtering out rows with {ACTUAL_TAXI_OUT_SEC} == 0 or >= 7200")
     train_before = len(training_airport_data)
     test_before = len(test_airport_data)
     training_airport_data = training_airport_data[
-        (training_airport_data["actual_taxi_out_sec"] > 0)
-        & (training_airport_data["actual_taxi_out_sec"] < 7200)
+        (training_airport_data[ACTUAL_TAXI_OUT_SEC] > 0)
+        & (training_airport_data[ACTUAL_TAXI_OUT_SEC] < 7200)
     ].reset_index(drop=True)
     test_airport_data = test_airport_data[
-        (test_airport_data["actual_taxi_out_sec"] > 0)
-        & (test_airport_data["actual_taxi_out_sec"] < 7200)
+        (test_airport_data[ACTUAL_TAXI_OUT_SEC] > 0)
+        & (test_airport_data[ACTUAL_TAXI_OUT_SEC] < 7200)
     ].reset_index(drop=True)
     logger.info(f"Filtered training: {train_before} -> {len(training_airport_data)}")
     logger.info(f"Filtered test: {test_before} -> {len(test_airport_data)}")
@@ -568,14 +612,14 @@ def silver_to_gold():
     logger.info("Encoding features (training - learning categories)")
     training_airport_data, category_mappings = encode_features(
         training_airport_data,
-        ["AOBT"],
-        ["summary", "icon", "precipType"],
+        [AOBT],
+        [SUMMARY, ICON, PRECIP_TYPE],
     )
     logger.info("Encoding features (test - using training categories)")
     test_airport_data, _ = encode_features(
         test_airport_data,
-        ["AOBT"],
-        ["summary", "icon", "precipType"],
+        [AOBT],
+        [SUMMARY, ICON, PRECIP_TYPE],
         category_mappings=category_mappings,
     )
 

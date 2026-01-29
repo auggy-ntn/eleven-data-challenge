@@ -10,8 +10,8 @@ stages:
       nfiles: 8
     - path: src/pipelines/data/bronze_to_silver.py
       hash: md5
-      md5: 0db6016504e20c97c4ca0aee3c90c764
-      size: 9316
+      md5: 1220aed9d09f6241659c4c539fd3dcbe
+      size: 9339
     outs:
     - path: data/silver/
       hash: md5
@@ -28,11 +28,40 @@ stages:
       nfiles: 8
     - path: src/pipelines/data/silver_to_gold.py
       hash: md5
-      md5: aec70583c9cd86dfa44a81c52ff9303c
-      size: 20856
+      md5: 80fdbe3c31750264d9b77d57894df645
+      size: 21493
     outs:
     - path: data/gold/
       hash: md5
       md5: 13c0eab5f635ee8a3227fd406fa4653e.dir
       size: 18223801
       nfiles: 4
+  create_predictions:
+    cmd: uv run python -m src.pipelines.models.create_predictions
+    deps:
+    - path: data/gold/
+      hash: md5
+      md5: 13c0eab5f635ee8a3227fd406fa4653e.dir
+      size: 18223801
+      nfiles: 4
+    - path: src/pipelines/models/create_predictions.py
+      hash: md5
+      md5: 71f3c431f62f86752e8ad327b94a60a2
+      size: 4317
+    - path: src/pipelines/utils/model_prediction_making.py
+      hash: md5
+      md5: 160c91bbf3d01cf381ed9420bc91c78c
+      size: 7113
+    params:
+      params.yaml:
+        create_predictions:
+          n_samples: 10
+          model_type: xgboost
+          run_id: 67a3af6b897d4e8398c3649996a81220
+          random_seed: 42
+    outs:
+    - path: data/predictions/
+      hash: md5
+      md5: 29dfcdb5e194b18eed18af32bee1d84b.dir
+      size: 7431
+      nfiles: 2

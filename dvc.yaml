@@ -29,8 +29,21 @@ stages:
     deps:
       - src/pipelines/models/train_models.py
       - src/pipelines/models/linear_regression.py
+      - src/pipelines/models/xgboost_model.py
       - src/pipelines/utils/model_inputs_loading.py
-      # - data/gold/  # Add your gold data dependencies here
+      - data/gold/
     params:
       - train_models
       - hyperparameters
+
+  # Stage 4: Create predictions using trained models
+  create_predictions:
+    cmd: uv run python -m src.pipelines.models.create_predictions
+    deps:
+      - src/pipelines/models/create_predictions.py
+      - src/pipelines/utils/model_prediction_making.py
+      - data/gold/
+    outs:
+      - data/predictions/
+    params:
+      - create_predictions
