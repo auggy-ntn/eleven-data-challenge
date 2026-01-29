@@ -4,14 +4,21 @@ import numpy as np
 import pandas as pd
 
 from constants.column_names import (
+    ACTUAL_TAXI_OUT_SEC,
     AIRCRAFT_MODEL,
+    AIRCRAFT_SPAN,
+    AIRPORT_ARRIVAL_DEPARTURE,
     AOBT,
     APPARENT_TEMPERATURE,
     ATOT,
+    CLOUD_COVER,
     DELAY_SECONDS,
     DEW_POINT,
     DISTANCE,
+    DISTANCE_PROXY_M,
     FLIGHT_DATETIME,
+    FLIGHT_NUMBER,
+    HELICOPTER,
     HOUR,
     ICON,
     LAT_RUNWAY,
@@ -19,18 +26,22 @@ from constants.column_names import (
     LNG_RUNWAY,
     LNG_STAND,
     LOG_DISTANCE,
+    LOG_DISTANCE_M,
     MONTH,
+    MOVEMENT_TYPE,
     PLANES_10MIN,
     PLANES_30MIN,
     PRECIP_INTENSITY,
     PRECIP_PROBABILITY,
     PRECIP_TYPE,
     PRESSURE,
+    PRIVATE_FLIGHT,
     Q_DEP_ARR,
     RUNWAY,
     STAND,
     SUMMARY,
     TIME_HOURLY,
+    UV_INDEX,
     WEEKDAY,
     WIND_BEARING,
     WIND_GUST,
@@ -140,12 +151,12 @@ def add_distance_columns(
 def clean_weather_data(weather_data: pd.DataFrame) -> pd.DataFrame:
     """Clean weather data by dropping unnecessary columns."""
     columns_to_drop = [
-        # "Flight Number" - kept for private_flight column creation
-        "Aircraft Span",
-        "Airport Arrival/Departure",
-        "Movement Type",
-        "Distance_proxy_m",
-        "Log_distance_m",
+        # FLIGHT_NUMBER - kept for private_flight column creation
+        AIRCRAFT_SPAN,
+        AIRPORT_ARRIVAL_DEPARTURE,
+        MOVEMENT_TYPE,
+        DISTANCE_PROXY_M,
+        LOG_DISTANCE_M,
         YEAR,
         MONTH,
         WEEKDAY,
@@ -217,13 +228,13 @@ def add_private_flight_column(df: pd.DataFrame) -> pd.DataFrame:
     private_codes = ["NJE", "VJT", "PVT", "SIG"]
 
     # Extract airline prefix (2-3 letter code at start of Flight Number)
-    airline_prefix = df["Flight Number"].str.extract(r"^([A-Z]{2,3})", expand=False)
+    airline_prefix = df[FLIGHT_NUMBER].str.extract(r"^([A-Z]{2,3})", expand=False)
 
     # Create private_flight column: 1 if private, 0 otherwise
-    df["private_flight"] = airline_prefix.isin(private_codes).astype(int)
+    df[PRIVATE_FLIGHT] = airline_prefix.isin(private_codes).astype(int)
 
     # Drop Flight Number column
-    df = df.drop(columns=["Flight Number"])
+    df = df.drop(columns=[FLIGHT_NUMBER])
 
     return df
 
@@ -273,7 +284,7 @@ def add_helicopter_column(df: pd.DataFrame) -> pd.DataFrame:
     ]
 
     # Create helicopter column: 1 if helicopter, 0 otherwise
-    df["helicopter"] = df["Aircraft Model"].isin(helicopter_models).astype(int)
+    df[HELICOPTER] = df[AIRCRAFT_MODEL].isin(helicopter_models).astype(int)
 
     return df
 
@@ -327,8 +338,8 @@ def handle_nan_values(
         PRECIP_PROBABILITY,
         PRESSURE,
         WIND_BEARING,
-        "cloudCover",
-        "uvIndex",
+        CLOUD_COVER,
+        UV_INDEX,
     ]
 
     # Drop columns that exist
@@ -578,16 +589,16 @@ def silver_to_gold():
     test_airport_data = add_helicopter_column(test_airport_data)
 
     # Filter out rows with taxi time == 0 (data errors) or >= 7200 seconds (2 hours)
-    logger.info("Filtering out rows with actual_taxi_out_sec == 0 or >= 7200")
+    logger.info(f"Filtering out rows with {ACTUAL_TAXI_OUT_SEC} == 0 or >= 7200")
     train_before = len(training_airport_data)
     test_before = len(test_airport_data)
     training_airport_data = training_airport_data[
-        (training_airport_data["actual_taxi_out_sec"] > 0)
-        & (training_airport_data["actual_taxi_out_sec"] < 7200)
+        (training_airport_data[ACTUAL_TAXI_OUT_SEC] > 0)
+        & (training_airport_data[ACTUAL_TAXI_OUT_SEC] < 7200)
     ].reset_index(drop=True)
     test_airport_data = test_airport_data[
-        (test_airport_data["actual_taxi_out_sec"] > 0)
-        & (test_airport_data["actual_taxi_out_sec"] < 7200)
+        (test_airport_data[ACTUAL_TAXI_OUT_SEC] > 0)
+        & (test_airport_data[ACTUAL_TAXI_OUT_SEC] < 7200)
     ].reset_index(drop=True)
     logger.info(f"Filtered training: {train_before} -> {len(training_airport_data)}")
     logger.info(f"Filtered test: {test_before} -> {len(test_airport_data)}")

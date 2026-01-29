@@ -14,7 +14,7 @@ version = "0.1.0"
 authors = [{name = "Augustin Naton", email = "augustin.naton@gmail.com"}]
 description = "Eleven data challenge for the XHEC Data Science and AI for Business course."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.14"
 
 
 dependencies = [

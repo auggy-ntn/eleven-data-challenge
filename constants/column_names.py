@@ -23,6 +23,8 @@ LNG_STAND = "Lng_stand"
 # DISTANCE COLUMNS
 DISTANCE = "distance"
 LOG_DISTANCE = "log_distance"
+DISTANCE_PROXY_M = "Distance_proxy_m"
+LOG_DISTANCE_M = "Log_distance_m"
 
 # AIRCRAFT COLUMNS
 AIRCRAFT_LENGTH = "Aircraft Length"
@@ -33,6 +35,8 @@ NO_ENGINES = "No. Engines"
 DELAY_SECONDS = "delay_seconds"
 PLANES_30MIN = "planes_30min"
 PLANES_10MIN = "planes_10min"
+PRIVATE_FLIGHT = "private_flight"
+HELICOPTER = "helicopter"
 
 # TRAFFIC COLUMNS
 N_DEP_DEP = "N_dep_dep"
@@ -52,6 +56,8 @@ WIND_GUST = "windGust"
 APPARENT_TEMPERATURE = "apparentTemperature"
 DEW_POINT = "dewPoint"
 TIME_HOURLY = "time_hourly"
+CLOUD_COVER = "cloudCover"
+UV_INDEX = "uvIndex"
 
 # METADATA COLUMNS
 AIRPORT_ARRIVAL_DEPARTURE = "Airport Arrival/Departure"
