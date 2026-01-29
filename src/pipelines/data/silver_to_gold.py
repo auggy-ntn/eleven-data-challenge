@@ -449,15 +449,17 @@ def silver_to_gold():
         test_airport_data, training_weather_data
     )
 
-    # Filter out rows with taxi time < 360 seconds (6 minutes) - likely data errors
-    logger.info("Filtering out rows with actual_taxi_out_sec < 360")
+    # Filter out rows with taxi time < 360 seconds (6 min) or >= 7200 seconds (2 hours)
+    logger.info("Filtering out rows with actual_taxi_out_sec < 360 or >= 7200")
     train_before = len(training_airport_data)
     test_before = len(test_airport_data)
     training_airport_data = training_airport_data[
-        training_airport_data["actual_taxi_out_sec"] >= 360
+        (training_airport_data["actual_taxi_out_sec"] >= 360)
+        & (training_airport_data["actual_taxi_out_sec"] < 7200)
     ].reset_index(drop=True)
     test_airport_data = test_airport_data[
-        test_airport_data["actual_taxi_out_sec"] >= 360
+        (test_airport_data["actual_taxi_out_sec"] >= 360)
+        & (test_airport_data["actual_taxi_out_sec"] < 7200)
     ].reset_index(drop=True)
     logger.info(f"Filtered training: {train_before} -> {len(training_airport_data)}")
     logger.info(f"Filtered test: {test_before} -> {len(test_airport_data)}")
