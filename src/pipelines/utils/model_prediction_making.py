@@ -33,12 +33,50 @@ from constants.feature_categories import (
     WEATHER,
     get_feature_categories,
 )
+from constants.paths import (
+    GOLD_TEST_AIRPORT_DATA_CLEAN_PATH,
+    GOLD_TEST_AIRPORT_DATA_PATH,
+)
+
+# Mapping of model types to dataset types
+# "clean" for sklearn models, "default" for NaN-handling models
+MODEL_DATASET_TYPE = {
+    "linear_regression": "clean",
+    "random_forest": "clean",
+    "xgboost": "default",
+    "lightgbm": "default",
+    "catboost": "default",
+}
 
 
 def load_mlflow_env():
     """Load MLflow environment variables from .env file."""
     load_dotenv()
     mlflow.set_tracking_uri("databricks")
+
+
+def get_test_data_path(model_type: str):
+    """Get the appropriate test data path based on model type.
+
+    Args:
+        model_type: Type of the model (e.g., "xgboost", "linear_regression").
+
+    Returns:
+        Path to the appropriate test data file.
+
+    Raises:
+        ValueError: If model_type is not recognized.
+    """
+    if model_type not in MODEL_DATASET_TYPE:
+        raise ValueError(
+            f"Unknown model type: {model_type}. "
+            f"Supported types: {list(MODEL_DATASET_TYPE.keys())}"
+        )
+
+    dataset_type = MODEL_DATASET_TYPE[model_type]
+    if dataset_type == "clean":
+        return GOLD_TEST_AIRPORT_DATA_CLEAN_PATH
+    return GOLD_TEST_AIRPORT_DATA_PATH
 
 
 def load_model(run_id: str, model_type: str):
@@ -50,16 +88,26 @@ def load_model(run_id: str, model_type: str):
 
     Returns:
         The loaded model.
-    """
-    if model_type == "xgboost":
-        model_name = "xgboost_model"
-        model_uri = f"runs:/{run_id}/{model_name}"
-        model = mlflow.xgboost.load_model(model_uri)
 
-    elif model_type == "linear_regression":
-        model_name = "linear_regression_model"
-        model_uri = f"runs:/{run_id}/{model_name}"
+    Raises:
+        ValueError: If model_type is not recognized.
+    """
+    model_name = f"{model_type}_model"
+    model_uri = f"runs:/{run_id}/{model_name}"
+
+    if model_type == "xgboost":
+        model = mlflow.xgboost.load_model(model_uri)
+    elif model_type == "lightgbm":
+        model = mlflow.lightgbm.load_model(model_uri)
+    elif model_type == "catboost":
+        model = mlflow.catboost.load_model(model_uri)
+    elif model_type in ("linear_regression", "random_forest"):
         model = mlflow.sklearn.load_model(model_uri)
+    else:
+        raise ValueError(
+            f"Unknown model type: {model_type}. "
+            f"Supported types: {list(MODEL_DATASET_TYPE.keys())}"
+        )
 
     return model
 
@@ -94,11 +142,20 @@ def compute_shap_values(
         tuple: A tuple containing:
             - base_value (float): The expected value of the model output.
             - shap_values (np.ndarray): SHAP values for each feature.
+
+    Raises:
+        ValueError: If model_type is not recognized.
     """
-    if model_type == "xgboost":
+    # Tree-based models use TreeExplainer
+    if model_type in ("xgboost", "lightgbm", "catboost", "random_forest"):
         explainer = shap.TreeExplainer(model)
     elif model_type == "linear_regression":
         explainer = shap.LinearExplainer(model, X)
+    else:
+        raise ValueError(
+            f"Unknown model type: {model_type}. "
+            f"Supported types: {list(MODEL_DATASET_TYPE.keys())}"
+        )
 
     shap_explanation = explainer(X)
     base_value = explainer.expected_value

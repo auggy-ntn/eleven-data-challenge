@@ -13,13 +13,14 @@ from constants.column_names import ACTUAL_TAXI_OUT_SEC
 from constants.paths import (
     DASHBOARD_DATA_CSV_PATH,
     DASHBOARD_DATA_PARQUET_PATH,
-    GOLD_TEST_AIRPORT_DATA_PATH,
     PREDICTIONS_DIR,
 )
+from src.pipelines.utils.model_inputs_loading import load_params
 from src.pipelines.utils.model_prediction_making import (
     compute_shap_values,
     create_dashboard_dataset,
     get_best_run_id,
+    get_test_data_path,
     load_mlflow_env,
     load_model,
 )
@@ -66,9 +67,10 @@ def create_predictions(
     model = load_model(run_id, model_type)
     logger.info(f"Model loaded: {type(model).__name__}")
 
-    # Load and sample test data
-    logger.info(f"Loading test data from {GOLD_TEST_AIRPORT_DATA_PATH}")
-    test_data = pd.read_parquet(GOLD_TEST_AIRPORT_DATA_PATH)
+    # Load test data (clean dataset for sklearn models, default for NaN-handling models)
+    test_data_path = get_test_data_path(model_type)
+    logger.info(f"Loading test data from {test_data_path}")
+    test_data = pd.read_parquet(test_data_path)
 
     np.random.seed(random_seed)
     sample_indices = np.random.choice(len(test_data), size=n_samples, replace=False)
@@ -106,5 +108,16 @@ def create_predictions(
 
 if __name__ == "__main__":
     logger.info("Starting create predictions pipeline")
-    create_predictions()
+
+    # Load parameters from params.yaml
+    params = load_params()
+    prediction_params = params.get("create_predictions", {})
+
+    create_predictions(
+        n_samples=prediction_params.get("n_samples", 10),
+        model_type=prediction_params.get("model_type", "xgboost"),
+        run_id=prediction_params.get("run_id"),
+        random_seed=prediction_params.get("random_seed", 42),
+    )
+
     logger.info("Finished create predictions pipeline")

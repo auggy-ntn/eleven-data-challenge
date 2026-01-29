@@ -46,4 +46,4 @@ stages:
     outs:
       - data/predictions/
     params:
-      - create_prediction
+      - create_predictions

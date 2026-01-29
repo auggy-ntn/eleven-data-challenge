@@ -20,10 +20,10 @@ datasets:
   lightgbm: default
   catboost: default
 
-create_prediction:
+create_predictions:
   n_samples: 10
   model_type: xgboost
-  run_id: 1c87f7c758314fa585e69b6bc6b66298  # Use the best model if null
+  run_id: 67a3af6b897d4e8398c3649996a81220  # Use the best model if null
   random_seed: 42
 
 hyperparameters:
