@@ -4,7 +4,9 @@ import pandas as pd
 import yaml
 
 from constants.paths import (
+    GOLD_TEST_AIRPORT_DATA_CLEAN_PATH,
     GOLD_TEST_AIRPORT_DATA_PATH,
+    GOLD_TRAINING_AIRPORT_DATA_CLEAN_PATH,
     GOLD_TRAINING_AIRPORT_DATA_PATH,
     PARAMS_FILE,
 )
@@ -22,8 +24,26 @@ def load_params() -> dict:
         return yaml.safe_load(f)
 
 
-def load_training_data():
+def get_dataset_type(model_type: str) -> str:
+    """Get the dataset type for a given model.
+
+    Args:
+        model_type (str): Type of model.
+
+    Returns:
+        str: Dataset type ('default' or 'clean').
+    """
+    params = load_params()
+    datasets = params.get("datasets", {})
+    return datasets.get(model_type, "default")
+
+
+def load_training_data(model_type: str | None = None):
     """Load training and testing data for model training.
+
+    Args:
+        model_type (str | None): Type of model to determine which dataset to load.
+            If None, loads the default dataset (with NaN).
 
     Returns:
         tuple: A tuple containing:
@@ -32,9 +52,23 @@ def load_training_data():
             - X_test (pd.DataFrame): Testing feature matrix.
             - y_test (pd.Series): Testing target vector.
     """
+    # Determine which dataset to load
+    if model_type is not None:
+        dataset_type = get_dataset_type(model_type)
+    else:
+        dataset_type = "default"
+
+    # Select paths based on dataset type
+    if dataset_type == "clean":
+        train_path = GOLD_TRAINING_AIRPORT_DATA_CLEAN_PATH
+        test_path = GOLD_TEST_AIRPORT_DATA_CLEAN_PATH
+    else:
+        train_path = GOLD_TRAINING_AIRPORT_DATA_PATH
+        test_path = GOLD_TEST_AIRPORT_DATA_PATH
+
     # Load gold datasets
-    train_data = pd.read_parquet(GOLD_TRAINING_AIRPORT_DATA_PATH)
-    test_data = pd.read_parquet(GOLD_TEST_AIRPORT_DATA_PATH)
+    train_data = pd.read_parquet(train_path)
+    test_data = pd.read_parquet(test_path)
 
     # Split into features and target
     X_train = train_data.drop(columns=[TARGET_COLUMN])

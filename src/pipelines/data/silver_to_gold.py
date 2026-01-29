@@ -5,7 +5,9 @@ import pandas as pd
 
 from constants.paths import (
     GOLD_DIR,
+    GOLD_TEST_AIRPORT_DATA_CLEAN_PATH,
     GOLD_TEST_AIRPORT_DATA_PATH,
+    GOLD_TRAINING_AIRPORT_DATA_CLEAN_PATH,
     GOLD_TRAINING_AIRPORT_DATA_PATH,
     SILVER_GEOGRAPHIC_DATA_PATH,
     SILVER_TEST_AIRPORT_DATA_PATH,
@@ -557,14 +559,6 @@ def silver_to_gold():
     logger.info(f"Filtered training: {train_before} -> {len(training_airport_data)}")
     logger.info(f"Filtered test: {test_before} -> {len(test_airport_data)}")
 
-    # TEMPORARILY DISABLED: NaN handling (keeping all columns and rows)
-    # logger.info("Handling NaN values (training - computing medians)")
-    # training_airport_data, median_values = handle_nan_values(training_airport_data)
-    # logger.info("Handling NaN values (test - using training medians)")
-    # test_airport_data, _ = handle_nan_values(
-    #     test_airport_data, median_values=median_values
-    # )
-
     logger.info("Computing delay and dropping Flight Datetime")
     training_airport_data = compute_delay_and_drop_flight_datetime(
         training_airport_data
@@ -586,10 +580,32 @@ def silver_to_gold():
     )
 
     GOLD_DIR.mkdir(parents=True, exist_ok=True)
-    logger.info(f"Writing training airport data to {GOLD_TRAINING_AIRPORT_DATA_PATH}")
+
+    # Save datasets WITH NaN (for gradient boosting models: XGBoost, LightGBM, CatBoost)
+    logger.info(
+        f"Writing training data (with NaN) to {GOLD_TRAINING_AIRPORT_DATA_PATH}"
+    )
     training_airport_data.to_parquet(GOLD_TRAINING_AIRPORT_DATA_PATH, index=False)
-    logger.info(f"Writing test airport data to {GOLD_TEST_AIRPORT_DATA_PATH}")
+    logger.info(f"Writing test data (with NaN) to {GOLD_TEST_AIRPORT_DATA_PATH}")
     test_airport_data.to_parquet(GOLD_TEST_AIRPORT_DATA_PATH, index=False)
+
+    # Create clean datasets (NaN handled) for sklearn models
+    logger.info("Handling NaN values for clean datasets (training - computing medians)")
+    training_clean, median_values = handle_nan_values(training_airport_data.copy())
+    logger.info(
+        "Handling NaN values for clean datasets (test - using training medians)"
+    )
+    test_clean, _ = handle_nan_values(
+        test_airport_data.copy(), median_values=median_values
+    )
+
+    # Save clean datasets WITHOUT NaN (for Linear Regression, Random Forest)
+    logger.info(
+        f"Writing training data (clean) to {GOLD_TRAINING_AIRPORT_DATA_CLEAN_PATH}"
+    )
+    training_clean.to_parquet(GOLD_TRAINING_AIRPORT_DATA_CLEAN_PATH, index=False)
+    logger.info(f"Writing test data (clean) to {GOLD_TEST_AIRPORT_DATA_CLEAN_PATH}")
+    test_clean.to_parquet(GOLD_TEST_AIRPORT_DATA_CLEAN_PATH, index=False)
 
 
 if __name__ == "__main__":

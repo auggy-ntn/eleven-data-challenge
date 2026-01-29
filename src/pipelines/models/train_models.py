@@ -110,14 +110,19 @@ def train_models(model_types: list[str]):
     Args:
         model_types (list[str]): List of model types to train.
     """
-    # Load training data once
-    X_train, y_train, X_test, y_test = load_training_data()
-
-    # Train each model
+    # Train each model with its appropriate dataset
     for model_type in model_types:
         print(f"\n{'=' * 50}")
         print(f"Training {model_type}...")
         print(f"{'=' * 50}\n")
+
+        # Load data specific to this model type (clean or default)
+        X_train, y_train, X_test, y_test = load_training_data(model_type)
+        print(
+            f"Loaded dataset for {model_type}: "
+            f"{X_train.shape[0]} train, {X_test.shape[0]} test"
+        )
+
         train_model(model_type, X_train, y_train, X_test, y_test)
 
 
