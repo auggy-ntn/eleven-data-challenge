@@ -3,10 +3,9 @@
 # Or use `dvc exp run --set-param train_models.n_trials=100` to override
 
 train_models:
-  model_type: "xgboost"
-  run_name: "xgboost_run"
-  model_name: "xgboost_model"
-  n_trials: 50
+  model_types:
+    - linear_regression
+    - xgboost
 
 hyperparameters:
   linear_regression:

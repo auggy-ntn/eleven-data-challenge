@@ -4,28 +4,27 @@ from src.pipelines.models.linear_regression import train_linear_regression_model
 from src.pipelines.models.xgboost_model import train_xgboost_model
 from src.pipelines.utils.model_inputs_loading import (
     load_hyperparameter_grid,
-    load_nb_optimization_trials,
     load_params,
     load_training_data,
 )
 
 
-def train_models(model_type: str, run_name: str, model_name: str):
-    """Train machine learning models for plane taxi time prediction.
+def train_model(model_type: str, X_train, y_train, X_test, y_test):
+    """Train a single model.
 
     Args:
         model_type (str): Type of model to train.
-        run_name (str): Name of the MLflow run.
-        model_name (str): Name to log the model under in MLflow.
+        X_train: Training feature matrix.
+        y_train: Training target vector.
+        X_test: Testing feature matrix.
+        y_test: Testing target vector.
     """
-    # Load training data
-    X_train, y_train, X_test, y_test = load_training_data()
+    run_name = f"{model_type}_run"
+    model_name = f"{model_type}_model"
 
-    # Train specified model
     if model_type == "linear_regression":
-        # Load hyperparameter grid and number of optimization trials
-        linear_hyperparameter_grid = load_hyperparameter_grid(model_type)
-        nb_optimization_trials = load_nb_optimization_trials()
+        # Load hyperparameter grid
+        hyperparameter_grid = load_hyperparameter_grid(model_type)
 
         # Train Linear Regression model --> Stored and logged in MLflow
         train_linear_regression_model(
@@ -35,14 +34,12 @@ def train_models(model_type: str, run_name: str, model_name: str):
             y_train=y_train,
             X_test=X_test,
             y_test=y_test,
-            hyperparameter_grid=linear_hyperparameter_grid,
-            n_trials=nb_optimization_trials,
+            hyperparameter_grid=hyperparameter_grid,
         )
 
     elif model_type == "xgboost":
-        # Load hyperparameter grid and number of optimization trials
-        xgboost_hyperparameter_grid = load_hyperparameter_grid(model_type)
-        nb_optimization_trials = load_nb_optimization_trials()
+        # Load hyperparameter grid
+        hyperparameter_grid = load_hyperparameter_grid(model_type)
 
         # Train XGBoost model --> Stored and logged in MLflow
         train_xgboost_model(
@@ -52,8 +49,7 @@ def train_models(model_type: str, run_name: str, model_name: str):
             y_train=y_train,
             X_test=X_test,
             y_test=y_test,
-            hyperparameter_grid=xgboost_hyperparameter_grid,
-            n_trials=nb_optimization_trials,
+            hyperparameter_grid=hyperparameter_grid,
         )
 
     # TODO: Add other model types here - Follow the same structure as above
@@ -62,14 +58,27 @@ def train_models(model_type: str, run_name: str, model_name: str):
         raise ValueError(f"Unsupported model type: {model_type}")
 
 
+def train_models(model_types: list[str]):
+    """Train multiple machine learning models for plane taxi time prediction.
+
+    Args:
+        model_types (list[str]): List of model types to train.
+    """
+    # Load training data once
+    X_train, y_train, X_test, y_test = load_training_data()
+
+    # Train each model
+    for model_type in model_types:
+        print(f"\n{'=' * 50}")
+        print(f"Training {model_type}...")
+        print(f"{'=' * 50}\n")
+        train_model(model_type, X_train, y_train, X_test, y_test)
+
+
 if __name__ == "__main__":
     # Execute the pipeline --> Called using DVC
     # Parameters are loaded from /params.yaml
     params = load_params()
     train_params = params["train_models"]
 
-    train_models(
-        model_type=train_params["model_type"],
-        run_name=train_params["run_name"],
-        model_name=train_params["model_name"],
-    )
+    train_models(model_types=train_params["model_types"])

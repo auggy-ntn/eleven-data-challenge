@@ -7,37 +7,50 @@ Logs metrics and model artifacts using MLflow.
 from dotenv import load_dotenv
 import mlflow
 from mlflow.models.signature import infer_signature
+import numpy as np
 import optuna
+from optuna.samplers import GridSampler
 import pandas as pd
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_percentage_error, root_mean_squared_error
+from sklearn.metrics import (
+    mean_absolute_error,
+    mean_absolute_percentage_error,
+    root_mean_squared_error,
+)
 
 
 # Model Optimization Function
 def optimize_linear_regression_model(
     X_train: pd.DataFrame,
     y_train: pd.Series,
-    X_test: pd.DataFrame,
-    y_test: pd.Series,
     hyperparameter_grid: dict | None,
-    n_trials: int = 50,
+    n_trials: int = 2,
+    validation_split: float = 0.2,
     **kwargs,
 ) -> dict:
-    """Optimize a Linear Regression model with Optuna.
+    """Optimize a Linear Regression model with Optuna using time series split.
+
+    Uses the last portion of training data as validation (time series split).
 
     Args:
         X_train (pd.DataFrame): Training feature matrix.
         y_train (pd.Series): Training target vector.
-        X_test (pd.DataFrame): Testing feature matrix.
-        y_test (pd.Series): Testing target vector.
         hyperparameter_grid (dict | None): Hyperparameter grid for optimization.
             If None, a default search space is used.
         n_trials (int, optional): Number of Optuna trials. Defaults to 50.
+        validation_split (float, optional): Fraction of training data to use for
+            validation (taken from the end). Defaults to 0.2.
         **kwargs: Additional keyword arguments for LinearRegression.
 
     Returns:
         dict: Best hyperparameters found by Optuna.
     """
+    # Time series split: use last portion as validation
+    split_idx = int(len(X_train) * (1 - validation_split))
+    X_opt_train = X_train.iloc[:split_idx]
+    y_opt_train = y_train.iloc[:split_idx]
+    X_opt_val = X_train.iloc[split_idx:]
+    y_opt_val = y_train.iloc[split_idx:]
 
     def objective(trial):
         """Internal objective function for Optuna hyperparameter tuning.
@@ -62,12 +75,20 @@ def optimize_linear_regression_model(
                 ),
             }
         model = LinearRegression(**params, **kwargs)
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        optimization_metric = root_mean_squared_error(y_test, y_pred)
+        model.fit(X_opt_train, y_opt_train)
+        y_pred = model.predict(X_opt_val)
+        optimization_metric = root_mean_squared_error(y_opt_val, y_pred)
         return optimization_metric
 
-    study = optuna.create_study(direction="minimize")
+    # Define search space for GridSampler
+    if hyperparameter_grid is not None:
+        search_space = hyperparameter_grid
+    else:
+        search_space = {"fit_intercept": [True, False]}
+
+    # Use GridSampler to ensure all combinations are tried
+    sampler = GridSampler(search_space)
+    study = optuna.create_study(direction="minimize", sampler=sampler)
     study.optimize(objective, n_trials=n_trials)
 
     best_params = study.best_params
@@ -83,10 +104,13 @@ def train_linear_regression_model(
     X_test: pd.DataFrame,
     y_test: pd.Series,
     hyperparameter_grid: dict | None = None,
-    n_trials: int = 50,
+    n_trials: int = 2,
     **kwargs,
 ):
     """Train and log a Linear Regression model using MLflow.
+
+    Optimizes hyperparameters using a time series split on training data,
+    then trains the final model on the full training set.
 
     Args:
         run_name (str, optional): Name of the MLflow run.
@@ -104,31 +128,34 @@ def train_linear_regression_model(
     load_dotenv()
 
     with mlflow.start_run(run_name=run_name):
+        # Optimize hyperparameters using time series split on training data only
         best_params = optimize_linear_regression_model(
             X_train,
             y_train,
-            X_test,
-            y_test,
             hyperparameter_grid,
             n_trials,
             **kwargs,
         )
 
-        # Fit model with best parameters
+        # Fit final model with best parameters on FULL training set
         model = LinearRegression(**best_params, **kwargs)
         model.fit(X_train, y_train)
 
-        # Compute evalutation metrics - TODO: Add more metrics
+        # Evaluate on held-out test set
         y_pred = model.predict(X_test)
         rmse = root_mean_squared_error(y_test, y_pred)
         mape = mean_absolute_percentage_error(y_test, y_pred)
+        mae = mean_absolute_error(y_test, y_pred)
+        std = np.std(y_test - y_pred)
 
         # Log parameters
         mlflow.log_params(best_params)
 
-        # Log metrics - TODO: Add more metrics
+        # Log metrics
         mlflow.log_metric("rmse", rmse)
         mlflow.log_metric("mape", mape)
+        mlflow.log_metric("mae", mae)
+        mlflow.log_metric("std", std)
 
         # Log model
         signature = infer_signature(X_train, model.predict(X_train))
