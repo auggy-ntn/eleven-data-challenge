@@ -6,8 +6,14 @@ train_models:
   model_types:
     - linear_regression
     - xgboost
+    - random_forest
+    - lightgbm
+    - catboost
 
 hyperparameters:
   linear_regression:
     fit_intercept: [true, false]
   xgboost: null  # Uses default search space in xgboost_model.py
+  random_forest: null  # Uses default search space in random_forest.py
+  lightgbm: null  # Uses default search space in lightgbm_model.py
+  catboost: null  # Uses default search space in catboost_model.py

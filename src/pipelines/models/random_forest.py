@@ -1,6 +1,6 @@
-"""XGBoost Model Implementation.
+"""Random Forest Model Implementation.
 
-Defines a training, optimization, and evaluation pipeline for an XGBoost model.
+Defines a training, optimization, and evaluation pipeline for a Random Forest model.
 Logs metrics and model artifacts using MLflow.
 """
 
@@ -10,24 +10,24 @@ from mlflow.models.signature import infer_signature
 import numpy as np
 import optuna
 import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import (
     mean_absolute_error,
     mean_absolute_percentage_error,
     root_mean_squared_error,
 )
-from xgboost import XGBRegressor
 
 
 # Model Optimization Function
-def optimize_xgboost_model(
+def optimize_random_forest_model(
     X_train: pd.DataFrame,
     y_train: pd.Series,
     hyperparameter_grid: dict | None,
-    n_trials: int = 30,
+    n_trials: int = 15,
     validation_split: float = 0.2,
     **kwargs,
 ) -> dict:
-    """Optimize an XGBoost model with Optuna using time series split.
+    """Optimize a Random Forest model with Optuna using time series split.
 
     Uses the last portion of training data as validation (time series split).
 
@@ -36,10 +36,10 @@ def optimize_xgboost_model(
         y_train (pd.Series): Training target vector.
         hyperparameter_grid (dict | None): Hyperparameter grid for optimization.
             If None, a default search space is used.
-        n_trials (int, optional): Number of Optuna trials. Defaults to 50.
+        n_trials (int, optional): Number of Optuna trials. Defaults to 15.
         validation_split (float, optional): Fraction of training data to use for
             validation (taken from the end). Defaults to 0.2.
-        **kwargs: Additional keyword arguments for XGBRegressor.
+        **kwargs: Additional keyword arguments for RandomForestRegressor.
 
     Returns:
         dict: Best hyperparameters found by Optuna.
@@ -83,26 +83,21 @@ def optimize_xgboost_model(
                             log=values.get("log", False),
                         )
         else:
-            # Default search space for XGBoost
+            # Default search space for Random Forest
             params = {
-                "n_estimators": trial.suggest_int("n_estimators", 100, 1000),
-                "max_depth": trial.suggest_int("max_depth", 3, 10),
-                "learning_rate": trial.suggest_float(
-                    "learning_rate", 0.01, 0.3, log=True
+                "n_estimators": trial.suggest_int("n_estimators", 100, 500),
+                "max_depth": trial.suggest_int("max_depth", 5, 30),
+                "min_samples_split": trial.suggest_int("min_samples_split", 2, 20),
+                "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 10),
+                "max_features": trial.suggest_categorical(
+                    "max_features", ["sqrt", "log2", None]
                 ),
-                "subsample": trial.suggest_float("subsample", 0.6, 1.0),
-                "colsample_bytree": trial.suggest_float("colsample_bytree", 0.6, 1.0),
-                "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
-                "gamma": trial.suggest_float("gamma", 0.0, 5.0),
-                "reg_alpha": trial.suggest_float("reg_alpha", 1e-8, 10.0, log=True),
-                "reg_lambda": trial.suggest_float("reg_lambda", 1e-8, 10.0, log=True),
             }
 
-        model = XGBRegressor(
+        model = RandomForestRegressor(
             **params,
             random_state=42,
-            device="cuda",  # Use GPU
-            verbosity=0,
+            n_jobs=-1,
             **kwargs,
         )
         model.fit(X_opt_train, y_opt_train)
@@ -118,7 +113,7 @@ def optimize_xgboost_model(
 
 
 # Model Training and Logging Function
-def train_xgboost_model(
+def train_random_forest_model(
     run_name: str,
     model_name: str,
     X_train: pd.DataFrame,
@@ -126,10 +121,10 @@ def train_xgboost_model(
     X_test: pd.DataFrame,
     y_test: pd.Series,
     hyperparameter_grid: dict | None = None,
-    n_trials: int = 30,
+    n_trials: int = 15,
     **kwargs,
 ):
-    """Train and log an XGBoost model using MLflow.
+    """Train and log a Random Forest model using MLflow.
 
     Optimizes hyperparameters using a time series split on training data,
     then trains the final model on the full training set.
@@ -143,15 +138,15 @@ def train_xgboost_model(
         y_test (pd.Series): Testing target vector.
         hyperparameter_grid (dict | None): Hyperparameter grid for optimization.
             If None, a default search space is used. Defaults to None.
-        n_trials (int, optional): Number of Optuna trials. Defaults to 50.
-        **kwargs: Additional keyword arguments for XGBRegressor.
+        n_trials (int, optional): Number of Optuna trials. Defaults to 30.
+        **kwargs: Additional keyword arguments for RandomForestRegressor.
     """
     # Load environment variables for MLflow configuration
     load_dotenv()
 
     with mlflow.start_run(run_name=run_name):
         # Optimize hyperparameters using time series split on training data only
-        best_params = optimize_xgboost_model(
+        best_params = optimize_random_forest_model(
             X_train,
             y_train,
             hyperparameter_grid,
@@ -160,11 +155,10 @@ def train_xgboost_model(
         )
 
         # Fit final model with best parameters on FULL training set
-        model = XGBRegressor(
+        model = RandomForestRegressor(
             **best_params,
             random_state=42,
-            device="cuda",  # Use GPU
-            verbosity=0,
+            n_jobs=-1,
             **kwargs,
         )
         model.fit(X_train, y_train)
@@ -187,7 +181,7 @@ def train_xgboost_model(
 
         # Log model
         signature = infer_signature(X_train, model.predict(X_train))
-        mlflow.xgboost.log_model(
+        mlflow.sklearn.log_model(
             model,
             name=model_name,
             signature=signature,

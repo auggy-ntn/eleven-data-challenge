@@ -105,7 +105,7 @@ def add_distance_columns(
 def clean_weather_data(weather_data: pd.DataFrame) -> pd.DataFrame:
     """Clean weather data by dropping unnecessary columns."""
     columns_to_drop = [
-        "Flight Number",
+        # "Flight Number" - kept for private_flight column creation
         "Aircraft Span",
         "Airport Arrival/Departure",
         "Movement Type",
@@ -156,6 +156,91 @@ def merge_airport_weather_data(
             weather_data[col] = weather_data[col].astype(str)
 
     return airport_data.merge(weather_data, on=merge_columns, how="left")
+
+
+def add_private_flight_column(df: pd.DataFrame) -> pd.DataFrame:
+    """Add private_flight column based on airline code, then drop Flight Number.
+
+    Private flight codes:
+    - NJE: NetJets Europe
+    - VJT: VistaJet
+    - PVT: Private flight designation
+    - SIG: Signature Aviation (business aviation)
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        DataFrame containing Flight Number column.
+
+    Returns:
+    -------
+    pd.DataFrame
+        DataFrame with private_flight column added and Flight Number dropped.
+    """
+    df = df.copy()
+
+    private_codes = ["NJE", "VJT", "PVT", "SIG"]
+
+    # Extract airline prefix (2-3 letter code at start of Flight Number)
+    airline_prefix = df["Flight Number"].str.extract(r"^([A-Z]{2,3})", expand=False)
+
+    # Create private_flight column: 1 if private, 0 otherwise
+    df["private_flight"] = airline_prefix.isin(private_codes).astype(int)
+
+    # Drop Flight Number column
+    df = df.drop(columns=["Flight Number"])
+
+    return df
+
+
+def add_helicopter_column(df: pd.DataFrame) -> pd.DataFrame:
+    """Add helicopter column based on aircraft model.
+
+    Verified helicopter models (from ICAO aircraft database):
+    - A109: AgustaWestland A109
+    - AW139: Leonardo AW139
+    - S-76: Sikorsky S-76
+    - 407: Bell 407
+    - 214 ST: Bell 214 ST
+    - EC 120: Eurocopter EC120
+    - EC 135T: Eurocopter EC135
+    - EC 155B: Eurocopter EC155
+    - SA 365 DAUPHIN 2: Eurocopter Dauphin
+    - AEROSPATIALE AS355 ECUREUIL 2 (TWIN SQ.): Twin Squirrel
+    - AS 350 ECUREUIL (SQUIRREL): Single Squirrel
+    - Helicopter: Generic label
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        DataFrame containing Aircraft Model column.
+
+    Returns:
+    -------
+    pd.DataFrame
+        DataFrame with helicopter column added.
+    """
+    df = df.copy()
+
+    helicopter_models = [
+        "A109",
+        "AW139",
+        "S-76",
+        "407",
+        "214 ST",
+        "EC 120",
+        "EC 135T",
+        "EC 155B",
+        "SA 365 DAUPHIN 2",
+        "AEROSPATIALE AS355 ECUREUIL 2 (TWIN SQ.)",
+        "AS 350 ECUREUIL (SQUIRREL)",
+        "Helicopter",
+    ]
+
+    # Create helicopter column: 1 if helicopter, 0 otherwise
+    df["helicopter"] = df["Aircraft Model"].isin(helicopter_models).astype(int)
+
+    return df
 
 
 def cyclical_encode(df: pd.DataFrame, column: str, max_value: int) -> pd.DataFrame:
@@ -449,27 +534,36 @@ def silver_to_gold():
         test_airport_data, training_weather_data
     )
 
-    # Filter out rows with taxi time < 360 seconds (6 min) or >= 7200 seconds (2 hours)
-    logger.info("Filtering out rows with actual_taxi_out_sec < 360 or >= 7200")
+    logger.info("Adding private_flight column")
+    training_airport_data = add_private_flight_column(training_airport_data)
+    test_airport_data = add_private_flight_column(test_airport_data)
+
+    logger.info("Adding helicopter column")
+    training_airport_data = add_helicopter_column(training_airport_data)
+    test_airport_data = add_helicopter_column(test_airport_data)
+
+    # Filter out rows with taxi time == 0 (data errors) or >= 7200 seconds (2 hours)
+    logger.info("Filtering out rows with actual_taxi_out_sec == 0 or >= 7200")
     train_before = len(training_airport_data)
     test_before = len(test_airport_data)
     training_airport_data = training_airport_data[
-        (training_airport_data["actual_taxi_out_sec"] >= 360)
+        (training_airport_data["actual_taxi_out_sec"] > 0)
         & (training_airport_data["actual_taxi_out_sec"] < 7200)
     ].reset_index(drop=True)
     test_airport_data = test_airport_data[
-        (test_airport_data["actual_taxi_out_sec"] >= 360)
+        (test_airport_data["actual_taxi_out_sec"] > 0)
         & (test_airport_data["actual_taxi_out_sec"] < 7200)
     ].reset_index(drop=True)
     logger.info(f"Filtered training: {train_before} -> {len(training_airport_data)}")
     logger.info(f"Filtered test: {test_before} -> {len(test_airport_data)}")
 
-    logger.info("Handling NaN values (training - computing medians)")
-    training_airport_data, median_values = handle_nan_values(training_airport_data)
-    logger.info("Handling NaN values (test - using training medians)")
-    test_airport_data, _ = handle_nan_values(
-        test_airport_data, median_values=median_values
-    )
+    # TEMPORARILY DISABLED: NaN handling (keeping all columns and rows)
+    # logger.info("Handling NaN values (training - computing medians)")
+    # training_airport_data, median_values = handle_nan_values(training_airport_data)
+    # logger.info("Handling NaN values (test - using training medians)")
+    # test_airport_data, _ = handle_nan_values(
+    #     test_airport_data, median_values=median_values
+    # )
 
     logger.info("Computing delay and dropping Flight Datetime")
     training_airport_data = compute_delay_and_drop_flight_datetime(
