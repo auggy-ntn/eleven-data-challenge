@@ -557,12 +557,13 @@ def silver_to_gold():
     logger.info(f"Filtered training: {train_before} -> {len(training_airport_data)}")
     logger.info(f"Filtered test: {test_before} -> {len(test_airport_data)}")
 
-    logger.info("Handling NaN values (training - computing medians)")
-    training_airport_data, median_values = handle_nan_values(training_airport_data)
-    logger.info("Handling NaN values (test - using training medians)")
-    test_airport_data, _ = handle_nan_values(
-        test_airport_data, median_values=median_values
-    )
+    # TEMPORARILY DISABLED: NaN handling (keeping all columns and rows)
+    # logger.info("Handling NaN values (training - computing medians)")
+    # training_airport_data, median_values = handle_nan_values(training_airport_data)
+    # logger.info("Handling NaN values (test - using training medians)")
+    # test_airport_data, _ = handle_nan_values(
+    #     test_airport_data, median_values=median_values
+    # )
 
     logger.info("Computing delay and dropping Flight Datetime")
     training_airport_data = compute_delay_and_drop_flight_datetime(
