@@ -1,6 +1,9 @@
 """Pipeline to train models."""
 
+from src.pipelines.models.catboost_model import train_catboost_model
+from src.pipelines.models.lightgbm_model import train_lightgbm_model
 from src.pipelines.models.linear_regression import train_linear_regression_model
+from src.pipelines.models.random_forest import train_random_forest_model
 from src.pipelines.models.xgboost_model import train_xgboost_model
 from src.pipelines.utils.model_inputs_loading import (
     load_hyperparameter_grid,
@@ -52,7 +55,50 @@ def train_model(model_type: str, X_train, y_train, X_test, y_test):
             hyperparameter_grid=hyperparameter_grid,
         )
 
-    # TODO: Add other model types here - Follow the same structure as above
+    elif model_type == "random_forest":
+        # Load hyperparameter grid
+        hyperparameter_grid = load_hyperparameter_grid(model_type)
+
+        # Train Random Forest model --> Stored and logged in MLflow
+        train_random_forest_model(
+            run_name=run_name,
+            model_name=model_name,
+            X_train=X_train,
+            y_train=y_train,
+            X_test=X_test,
+            y_test=y_test,
+            hyperparameter_grid=hyperparameter_grid,
+        )
+
+    elif model_type == "lightgbm":
+        # Load hyperparameter grid
+        hyperparameter_grid = load_hyperparameter_grid(model_type)
+
+        # Train LightGBM model --> Stored and logged in MLflow
+        train_lightgbm_model(
+            run_name=run_name,
+            model_name=model_name,
+            X_train=X_train,
+            y_train=y_train,
+            X_test=X_test,
+            y_test=y_test,
+            hyperparameter_grid=hyperparameter_grid,
+        )
+
+    elif model_type == "catboost":
+        # Load hyperparameter grid
+        hyperparameter_grid = load_hyperparameter_grid(model_type)
+
+        # Train CatBoost model --> Stored and logged in MLflow
+        train_catboost_model(
+            run_name=run_name,
+            model_name=model_name,
+            X_train=X_train,
+            y_train=y_train,
+            X_test=X_test,
+            y_test=y_test,
+            hyperparameter_grid=hyperparameter_grid,
+        )
 
     else:
         raise ValueError(f"Unsupported model type: {model_type}")
