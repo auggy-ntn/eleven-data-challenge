@@ -52,9 +52,15 @@ SILVER_TEST_GEOGRAPHIC_DATA_PATH = (
     SILVER_DIR / "3. Test set" / "geographic_data.parquet"
 )
 
-# Gold paths
+# Gold paths (with NaN - for gradient boosting models)
 GOLD_TRAINING_AIRPORT_DATA_PATH = GOLD_DIR / "training_set_airport_data.parquet"
 GOLD_TEST_AIRPORT_DATA_PATH = GOLD_DIR / "test_set_airport_data.parquet"
+
+# Gold paths (clean - NaN handled, for sklearn models)
+GOLD_TRAINING_AIRPORT_DATA_CLEAN_PATH = (
+    GOLD_DIR / "training_set_airport_data_clean.parquet"
+)
+GOLD_TEST_AIRPORT_DATA_CLEAN_PATH = GOLD_DIR / "test_set_airport_data_clean.parquet"
 
 # Configuration directory
 CONFIG_DIR = PROJECT_ROOT / "config"

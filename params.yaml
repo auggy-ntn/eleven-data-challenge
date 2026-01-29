@@ -6,9 +6,19 @@ train_models:
   model_types:
     - linear_regression
     - xgboost
-    - random_forest
     - lightgbm
     - catboost
+    - random_forest
+
+# Dataset type per model: "default" (with NaN) or "clean" (NaN handled)
+# - default: For models that handle NaN natively (XGBoost, LightGBM, CatBoost)
+# - clean: For sklearn models that require no NaN (Linear Regression, Random Forest)
+datasets:
+  linear_regression: clean
+  xgboost: default
+  random_forest: clean
+  lightgbm: default
+  catboost: default
 
 hyperparameters:
   linear_regression:

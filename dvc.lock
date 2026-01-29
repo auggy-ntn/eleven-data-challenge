@@ -28,11 +28,11 @@ stages:
       nfiles: 8
     - path: src/pipelines/data/silver_to_gold.py
       hash: md5
-      md5: 8921e48219e7b52fbff6c245df98800f
-      size: 20165
+      md5: aec70583c9cd86dfa44a81c52ff9303c
+      size: 20856
     outs:
     - path: data/gold/
       hash: md5
-      md5: f176b959dcf83417ab55d1578e0f1d26.dir
-      size: 8473406
-      nfiles: 2
+      md5: 13c0eab5f635ee8a3227fd406fa4653e.dir
+      size: 18223801
+      nfiles: 4
