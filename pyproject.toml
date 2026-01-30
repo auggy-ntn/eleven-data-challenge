@@ -11,7 +11,14 @@ packages = ["constants", "src"]
 [project]
 name = "19-data-commercial-proposal-eleven"
 version = "0.1.0"
-authors = [{name = "Augustin Naton", email = "augustin.naton@gmail.com"}]
+authors = [
+    { name = "Augustin Naton", email = "augustin.naton@gmail.com" },
+    { name = "Aymeric Falcon", email = "aymericdelongevialle@gmail.com" },
+    { name = "Paul Filisetti", email = "paul.filisetti@me.com" },
+    { name = "Paul Filisetti", email = "lperetie@gmail.com" },
+    { name = "William Belaidi", email = "william.belaidi@hec.edu"},
+    { name = "Gregoire Bidault", email = "gregoire.bidault@hec.edu"}
+]
 description = "Eleven data challenge for the XHEC Data Science and AI for Business course."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
