@@ -33,23 +33,47 @@ Learn how to use DVC (Data Version Control) to manage datasets and pipelines in 
 
 ```
 data/
-├── bronze/           # 🥉 Bronze: Immutable raw data (NEVER modify!)
-├── silver/           # 🥈 Silver: Cleaned, validated data
-└── gold/             # 🥇 Gold: Feature-engineered, model-ready data
+├── bronze/                    # 🥉 Bronze: Immutable raw data (NEVER modify!)
+│   ├── 0. Airport data/       #    Flight records (CSV)
+│   ├── 1. AC characteristics/ #    Aircraft specifications (XLSX)
+│   ├── 2. Weather data/       #    Historical weather (CSV/XLSX)
+│   └── 3. Test set/           #    Test data files
+├── silver/                    # 🥈 Silver: Cleaned, validated data (Parquet)
+│   ├── 0. Airport data/
+│   ├── 1. AC characteristics/
+│   ├── 2. Weather data/
+│   └── 3. Test set/
+├── gold/                      # 🥇 Gold: Feature-engineered, model-ready data
+│   ├── training_set_airport_data.parquet        # With NaN (for XGBoost, LightGBM, CatBoost)
+│   ├── training_set_airport_data_clean.parquet  # NaN handled (for sklearn models)
+│   ├── test_set_airport_data.parquet
+│   └── test_set_airport_data_clean.parquet
+└── predictions/               # 📊 Model predictions for dashboard
+    └── dashboard_data.parquet
 
 src/pipelines/
-├── data/             # 📝 Data pipeline scripts (bronze→silver→gold)
+├── data/                      # 📝 Data pipeline scripts (bronze→silver→gold)
 │   ├── bronze_to_silver.py
 │   └── silver_to_gold.py
-├── models/           # 🤖 Model training scripts
-│   ├── train_models.py
+├── models/                    # 🤖 Model training & prediction scripts
+│   ├── train_models.py        #    Training orchestration
+│   ├── create_predictions.py  #    Inference pipeline with SHAP
+│   ├── xgboost_model.py
+│   ├── lightgbm_model.py
+│   ├── catboost_model.py
+│   ├── random_forest.py
 │   └── linear_regression.py
-└── utils/            # 🔧 Shared utilities
-    ├── hyperparameters.py
-    └── model_inputs_loading.py
+└── utils/                     # 🔧 Shared utilities
+    ├── model_inputs_loading.py
+    └── model_prediction_making.py
 
-params.yaml           # ⚙️ All tunable parameters (tracked by DVC)
-dvc.yaml              # 🔄 Pipeline stage definitions
+constants/                     # 📋 Global constants
+├── paths.py                   #    Centralized path definitions
+├── column_names.py            #    Dataset column name constants
+└── feature_categories.py      #    SHAP feature groupings
+
+params.yaml                    # ⚙️ All tunable parameters (tracked by DVC)
+dvc.yaml                       # 🔄 Pipeline stage definitions
 ```
 
 ## Common Commands

@@ -8,8 +8,9 @@
 
 As the project owner, you need to:
 1. Set up data versioning infrastructure (DVC remote)
-2. Provide credentials to team members
-3. Configure repository settings
+2. Set up experiment tracking infrastructure (MLflow)
+3. Provide credentials to team members
+4. Configure repository settings
 
 ---
 
@@ -66,7 +67,7 @@ dvc push
 
 7. **Share with team**: Give them the credentials (use secure method: 1Password, LastPass, encrypted message)
 
-#### Option B: AWS S3
+#### Option B: AWS S3 (Alternative)
 
 **Setup Steps:**
 1. Create AWS account: https://aws.amazon.com/
@@ -87,23 +88,79 @@ dvc remote add -d s3remote s3://eleven-data-challenge/dvc-storage
 dvc remote modify s3remote region eu-west-1  # your region
 ```
 
-#### Option C: Local Remote (Simplest, Single-Machine)
-
-For single-user or local development:
-```bash
-dvc remote add -d localremote /path/to/storage/folder
-```
-
-#### Option D: Google Drive
-
-For small teams without cloud infrastructure:
-```bash
-dvc remote add -d gdrive gdrive://folder_id_here
-```
 
 ---
 
-## Step 2: Share Credentials with Team
+## Step 2: Set Up Experiment Tracking (MLflow)
+
+### Why You Need This
+- Track model training experiments (parameters, metrics, artifacts)
+- Compare model performance across runs
+- Share experiment results with the team
+- Reproduce and deploy models
+
+### Databricks MLflow (Recommended)
+
+We recommend Databricks as the MLflow backend because it provides:
+- Free Community Edition tier
+- Managed MLflow tracking server
+- Shared workspace for team collaboration
+- Built-in experiment UI
+
+> **Note:** Other MLflow backends exist (self-hosted server, Azure ML, AWS SageMaker, etc.) but are not covered here. See [MLflow documentation](https://mlflow.org/docs/latest/tracking.html) for alternatives.
+
+**Setup Steps:**
+
+1. **Create a Databricks account:**
+   - Go to: https://www.databricks.com/try-databricks
+   - Sign up for free (Community Edition or free trial)
+
+2. **Create a workspace:**
+   - After signup, you'll be assigned a workspace
+   - Note your workspace URL: `https://dbc-XXXXXX-XXXX.cloud.databricks.com`
+
+3. **Create an MLflow experiment:**
+   - In Databricks, go to **Machine Learning** → **Experiments**
+   - Click **Create Experiment**
+   - Name it: `eleven-data-challenge` (or your choice)
+   - Note the **Experiment ID** (visible in the URL or experiment details)
+
+4. **Generate your personal access token:**
+   - Click your username (top right) → **Settings**
+   - Go to **Developer** → **Access Tokens**
+   - Click **Generate New Token**
+   - Name: `eleven-data-challenge-owner`
+   - Expiration: Set appropriately (or no expiration for long projects)
+   - Click **Generate** and **SAVE THE TOKEN** (shown only once!)
+
+5. **Configure your local environment:**
+```bash
+# Add to .env
+echo "DATABRICKS_HOST=https://dbc-XXXXXX-XXXX.cloud.databricks.com" >> .env
+echo "DATABRICKS_TOKEN=dapi_your_token_here" >> .env
+echo "MLFLOW_EXPERIMENT_ID=your_experiment_id" >> .env
+```
+
+6. **Test the connection:**
+```bash
+source .env
+uv run python -c "import mlflow; mlflow.set_tracking_uri('databricks'); print('MLflow connection successful!')"
+```
+
+7. **Invite team members to the workspace:**
+   - In Databricks, go to **Settings** → **Identity and access**
+   - Click **Users** → **Add User**
+   - Enter each team member's email
+   - They will receive an invitation to join the workspace
+
+8. **Share with team:**
+   - Workspace URL (`DATABRICKS_HOST`)
+   - Experiment ID (`MLFLOW_EXPERIMENT_ID`)
+   - Each team member creates their own personal access token
+
+---
+
+## Step 3: Share Credentials with Team
 
 ### What to Share
 
@@ -112,6 +169,11 @@ dvc remote add -d gdrive gdrive://folder_id_here
 - Bucket/container name
 - Access credentials (access key + secret key)
 - Endpoint URL (if OVH or other S3-compatible)
+
+**For MLflow (Experiment Tracking):**
+- Databricks workspace URL (`DATABRICKS_HOST`)
+- MLflow experiment ID (`MLFLOW_EXPERIMENT_ID`)
+- Instructions for team members to create their own access tokens
 
 ### Credentials Document Template
 
@@ -131,6 +193,11 @@ Endpoint: https://s3.gra.io.cloud.ovh.net
 Access Key ID: xxxxxxxxxxxxxxxxxxxxx
 Secret Access Key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
+MLFLOW TRACKING (Databricks)
+Workspace URL: https://dbc-XXXXXX-XXXX.cloud.databricks.com
+Experiment ID: 123456789
+Note: Each team member must create their own access token in Databricks
+
 SETUP INSTRUCTIONS
 See: docs/SETUP.md
 Owner Checklist: docs/PROJECT_OWNER_CHECKLIST.md
@@ -138,7 +205,7 @@ Owner Checklist: docs/PROJECT_OWNER_CHECKLIST.md
 
 ---
 
-## Step 3: Update Project Documentation
+## Step 4: Update Project Documentation
 
 ### Update .env.example
 
@@ -164,11 +231,12 @@ git push
 
 ---
 
-## Step 4: Onboard Team Members
+## Step 5: Onboard Team Members
 
 1. **Provide Access:**
    - GitHub repository: Add as collaborator
    - DVC credentials: Share via secure method
+   - Databricks workspace: Invite via email (they create their own token)
 
 2. **Direct them to setup docs:**
    - [SETUP.md](SETUP.md) - Complete setup guide
@@ -185,6 +253,13 @@ Before inviting team members, verify:
 - [ ] Credentials generated and saved securely
 - [ ] Successfully ran `dvc push` from your machine
 - [ ] Tested `dvc pull` on a fresh clone (or different directory)
+
+### MLflow Tracking
+- [ ] Databricks workspace created
+- [ ] MLflow experiment created
+- [ ] Personal access token generated
+- [ ] Successfully logged a test run from your machine
+- [ ] Team members invited to workspace
 
 ### Documentation
 - [ ] `.env.example` updated with correct endpoint info
@@ -209,6 +284,8 @@ Before inviting team members, verify:
 
 ### For You (Project Owner)
 - DVC Documentation: https://dvc.org/doc
+- MLflow Documentation: https://mlflow.org/docs/latest/index.html
+- Databricks Documentation: https://docs.databricks.com/
 - OVH Object Storage Docs: https://docs.ovh.com/gb/en/storage/object-storage/
 - AWS S3 Docs: https://docs.aws.amazon.com/s3/
 
@@ -225,8 +302,9 @@ Once you've completed this checklist:
 1. Team can clone the repository
 2. Team can `dvc pull` to get data
 3. Team can run the pipeline (`dvc repro`)
-4. Team can launch the dashboard
-5. Team can collaborate on development
+4. Team can train models and track experiments in MLflow
+5. Team can launch the dashboard
+6. Team can collaborate on development
 
 ---
 
