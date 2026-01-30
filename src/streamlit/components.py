@@ -109,7 +109,9 @@ def flight_card(
 
     # Place each ordered driver into the next segments (Stand, Runway, Departure, Taxi)
     for i, (cat, val) in enumerate(items, start=1):
-        color = Eleven_COLORS["positive"] if val > 0 else Eleven_COLORS["negative"]
+        # Negative contribution reduces taxi time (good) -> positive/green
+        # Positive contribution increases taxi time (bad) -> negative/red
+        color = Eleven_COLORS["positive"] if val < 0 else Eleven_COLORS["negative"]
         bg = hex_to_rgba(color, alpha=0.16)
         label = ord_suffix.get(i, f"{i}th")
         # Arrow up for positive, down for negative
