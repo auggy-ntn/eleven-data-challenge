@@ -32,6 +32,7 @@ dependencies = [
     "lightgbm>=4.6.0",
     "catboost>=1.2.8",
     "shap==0.50.0",
+    "streamlit>=1.53.1",
 ]
 
 
