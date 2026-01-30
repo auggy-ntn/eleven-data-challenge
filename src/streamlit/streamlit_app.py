@@ -38,6 +38,13 @@ def main():
 
         # Render the full-width flight card (visible by default). Pass loop
         # index as `uid` so expansion state is unique per row.
+        drivers = {
+            "Weather": flight.get("Weather", 0.0),
+            "Traffic": flight.get("Traffic", 0.0),
+            "Distance": flight.get("Distance", 0.0),
+            "Aircraft": flight.get("Aircraft", 0.0),
+        }
+
         flight_card(
             flight=flight["Flight"],
             departure_time=flight["Departure time"].strftime("%H:%M"),
@@ -46,6 +53,7 @@ def main():
             runway=flight["Runway"],
             taxi_time=flight["Predicted taxi time (min)"],
             uid=idx,
+            drivers=drivers,
         )
 
         # Details/drilldown removed per redesign; clickable interaction will be added.

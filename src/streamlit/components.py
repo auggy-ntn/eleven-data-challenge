@@ -39,11 +39,24 @@ except Exception:
     from looks import Eleven_COLORS
 
 
-def flight_card(flight, departure_time, aircraft, stand, runway, taxi_time, uid=None):
+def flight_card(
+    flight,
+    departure_time,
+    aircraft,
+    stand,
+    runway,
+    taxi_time,
+    uid=None,
+    drivers: dict | None = None,
+):
     """Render a single-line flight card with a left chevron button to toggle details.
 
     - `uid` is used to create a per-card session-state key so expand/collapse
-        persists across reruns.
+      persists across reruns.
+    - `drivers` is an optional mapping of driver name -> contribution value
+      (e.g. {"Weather": -34.9, "Traffic": 55.9, ...}). When provided the
+      UI orders drivers by absolute contribution and renders them; otherwise
+      a fallback synthetic values are used.
     """
     key = f"card_expanded_{uid}"
     # Ensure a default session state for this card
@@ -63,17 +76,23 @@ def flight_card(flight, departure_time, aircraft, stand, runway, taxi_time, uid=
     # so expansion doesn't create a separate box. (Chevron rendered as button
     # in the left column, not inside the card.)
 
-    # Mock SHAP values prepared now in case needed for inline rendering
-    try:
-        seed = int(uid)
-    except Exception:
-        seed = 0
-    np.random.seed(seed)
-    cats = ["Weather", "Traffic", "Distance", "Aircraft"]
-    vals = np.random.randn(len(cats)) * 2.0
-    # Make zip strictness explicit for linters.
-    shap = {c: float(v) for c, v in zip(cats, vals, strict=False)}
-    items = sorted(shap.items(), key=lambda kv: abs(kv[1]), reverse=True)
+    # Use real driver contributions if provided, otherwise fall back to
+    # a small synthetic array to preserve layout during demos.
+    if drivers and isinstance(drivers, dict):
+        # Ensure values are floats and keep only expected four categories
+        cats = ["Weather", "Traffic", "Distance", "Aircraft"]
+        shap = {c: float(drivers.get(c, 0.0)) for c in cats}
+        items = sorted(shap.items(), key=lambda kv: abs(kv[1]), reverse=True)
+    else:
+        try:
+            seed = int(uid)
+        except Exception:
+            seed = 0
+        np.random.seed(seed)
+        cats = ["Weather", "Traffic", "Distance", "Aircraft"]
+        vals = np.random.randn(len(cats)) * 2.0
+        shap = {c: float(v) for c, v in zip(cats, vals, strict=False)}
+        items = sorted(shap.items(), key=lambda kv: abs(kv[1]), reverse=True)
 
     # Compose drivers HTML as five aligned segments to match the card above.
     # First segment: drivers title (aligned with Flight Number). Next four
